@@ -2,94 +2,93 @@ from flask import Flask, jsonify, render_template_string
 import requests
 import os
 import time
+import statistics
 
 app = Flask(__name__)
 API_KEY = os.getenv("API_KEY")
 
-# רשימה ישראלית סגורה — ניירות/קרנות סל/ממונפות שאמורות להיות ניתנות לרכישה בישראל
-# symbol = סימול/מספר לבדיקה ב-Twelve Data. אם נייר לא נתמך, הוא יוצג כ"שגיאה" ולא ייכנס לדירוג.
 FUNDS = [
-    {"symbol": "1146422", "name": "קסם LBMA Gold Price PM USD ETF", "sec_no": "1146422", "type": "סחורה / זהב"},
-    {"symbol": "TA125", "name": "מדד תל אביב 125", "sec_no": "INDEX", "type": "מדד ישראל"},
-    {"symbol": "TA35", "name": "מדד תל אביב 35", "sec_no": "INDEX", "type": "מדד ישראל"},
-    {"symbol": "TA-BANKS5", "name": "מדד ת״א בנקים", "sec_no": "INDEX", "type": "מדד ישראל"},
-    {"symbol": "TA-REAL", "name": "מדד ת״א נדל״ן", "sec_no": "INDEX", "type": "מדד ישראל"},
+    {"buy_name": "קרן סל ישראלית עוקבת Nasdaq 100", "proxy": "QQQ", "risk": "רגיל"},
+    {"buy_name": "קרן ממונפת פי 3 Nasdaq / איילון אקסטרים Nasdaq", "proxy": "QQQ", "risk": "ממונף פי 3"},
+    {"buy_name": "קרן ממונפת פי 2 Nasdaq", "proxy": "QQQ", "risk": "ממונף פי 2"},
 
-    # קרנות/סלים ישראליים - צריך לוודא תמיכה לפי Twelve Data
-    {"symbol": "1159093", "name": "קרן סל ישראלית עוקבת Nasdaq 100", "sec_no": "1159093", "type": "חו״ל / נאסד״ק"},
-    {"symbol": "1159028", "name": "קרן סל ישראלית עוקבת S&P 500", "sec_no": "1159028", "type": "חו״ל / S&P"},
-    {"symbol": "1159259", "name": "קרן סל ישראלית עוקבת MSCI World", "sec_no": "1159259", "type": "חו״ל / עולם"},
-    {"symbol": "1159515", "name": "איילון/קרן ממונפת פי 3 Nasdaq", "sec_no": "1159515", "type": "ממונפת"},
-    {"symbol": "1159531", "name": "איילון/קרן ממונפת פי 3 S&P 500", "sec_no": "1159531", "type": "ממונפת"},
-    {"symbol": "1159614", "name": "קרן ממונפת פי 3 ת״א 125", "sec_no": "1159614", "type": "ממונפת"},
-    {"symbol": "1159507", "name": "קרן ממונפת פי 2 Nasdaq", "sec_no": "1159507", "type": "ממונפת"},
-    {"symbol": "1159523", "name": "קרן ממונפת פי 2 S&P 500", "sec_no": "1159523", "type": "ממונפת"},
+    {"buy_name": "קרן סל ישראלית עוקבת S&P 500", "proxy": "SPY", "risk": "רגיל"},
+    {"buy_name": "קרן ממונפת פי 3 S&P 500 / איילון אקסטרים S&P", "proxy": "SPY", "risk": "ממונף פי 3"},
+    {"buy_name": "קרן ממונפת פי 2 S&P 500", "proxy": "SPY", "risk": "ממונף פי 2"},
+
+    {"buy_name": "קרן סל ישראלית עוקבת MSCI World", "proxy": "ACWI", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת שווקים מתעוררים", "proxy": "EEM", "risk": "רגיל"},
+
+    {"buy_name": "קרן סל ישראלית עוקבת טאיוואן / מזרח אסיה", "proxy": "EWT", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת קוריאה / מזרח אסיה", "proxy": "EWY", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת יפן", "proxy": "EWJ", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת הודו", "proxy": "INDA", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת סין", "proxy": "FXI", "risk": "רגיל"},
+
+    {"buy_name": "קרן סל ישראלית עוקבת שבבים / Semiconductors", "proxy": "SMH", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת טכנולוגיה", "proxy": "XLK", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת אנרגיה", "proxy": "XLE", "risk": "רגיל"},
+    {"buy_name": "קרן סל ישראלית עוקבת פיננסים / בנקים", "proxy": "XLF", "risk": "רגיל"},
+
+    {"buy_name": "קרן סל ישראלית עוקבת זהב / קסם זהב", "proxy": "GLD", "risk": "סחורה"},
+    {"buy_name": "קרן סל ישראלית עוקבת כסף", "proxy": "SLV", "risk": "סחורה"},
+    {"buy_name": "קרן סל ישראלית עוקבת נפט", "proxy": "USO", "risk": "סחורה"},
+    {"buy_name": "קרן דולר / חשיפה לדולר", "proxy": "UUP", "risk": "מטבע"},
 ]
 
-def fetch_series(symbol):
-    candidates = [
-        symbol,
-        f"{symbol}:XTAE",
-        f"{symbol}.TA",
-    ]
+def fetch_prices(symbol):
+    url = "https://api.twelvedata.com/time_series"
+    params = {
+        "symbol": symbol,
+        "interval": "1day",
+        "outputsize": 260,
+        "apikey": API_KEY
+    }
 
-    for s in candidates:
-        url = "https://api.twelvedata.com/time_series"
-        params = {
-            "symbol": s,
-            "interval": "1day",
-            "outputsize": 260,
-            "apikey": API_KEY
-        }
+    r = requests.get(url, params=params, timeout=20)
+    data = r.json()
 
-        try:
-            r = requests.get(url, params=params, timeout=12)
-            data = r.json()
-
-            if "values" in data and len(data["values"]) >= 65:
-                prices = []
-                for row in data["values"]:
-                    try:
-                        prices.append(float(row["close"]))
-                    except:
-                        pass
-
-                prices.reverse()
-                return prices, s
-
-        except Exception:
-            pass
-
-    return None, None
-
-def calc(prices):
-    if not prices or len(prices) < 65:
+    if "values" not in data:
         return None
 
+    prices = []
+    for row in data["values"]:
+        try:
+            prices.append(float(row["close"]))
+        except:
+            pass
+
+    prices.reverse()
+    return prices if len(prices) >= 65 else None
+
+def calc(prices, risk):
     last = prices[-1]
-    week = (last / prices[-5] - 1) * 100 if len(prices) >= 5 else 0
+
+    week = (last / prices[-5] - 1) * 100
     month = (last / prices[-21] - 1) * 100
     q3 = (last / prices[-63] - 1) * 100
     half = (last / prices[-126] - 1) * 100 if len(prices) >= 126 else q3
     year = (last / prices[-252] - 1) * 100 if len(prices) >= 252 else half
 
-    # תנודתיות יומית ממוצעת
-    returns = []
+    daily = []
     for i in range(1, len(prices)):
-        if prices[i-1] != 0:
-            returns.append((prices[i] / prices[i-1] - 1) * 100)
+        daily.append((prices[i] / prices[i-1] - 1) * 100)
 
-    vol = sum(abs(x) for x in returns[-60:]) / max(len(returns[-60:]), 1)
+    vol = statistics.mean([abs(x) for x in daily[-60:]]) if daily else 0
 
-    # ציון מומנטום: 3 חודשים וחצי שנה מקבלים משקל גבוה
     score = (
         0.10 * week +
         0.20 * month +
         0.30 * q3 +
         0.25 * half +
         0.15 * year -
-        0.60 * vol
+        0.70 * vol
     )
+
+    if "פי 3" in risk:
+        score = score * 1.25 - 2
+    elif "פי 2" in risk:
+        score = score * 1.15 - 1
 
     return {
         "week": round(week, 1),
@@ -101,13 +100,13 @@ def calc(prices):
         "score": round(score, 1)
     }
 
-def recommendation(score, fund_type):
-    if "ממונפת" in fund_type:
+def reco(score, risk):
+    if "פי 3" in risk:
         if score >= 8:
             return "🟢 קנייה אגרסיבית"
         if score >= 3:
-            return "🟡 מעקב / סיכון גבוה"
-        return "🔴 להימנע כרגע"
+            return "🟡 מעקב בלבד"
+        return "🔴 להימנע"
 
     if score >= 6:
         return "🟢 קנייה"
@@ -123,24 +122,27 @@ def home():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>סורק השקעות ישראלי</title>
+<title>סורק השקעות</title>
 <style>
-body{direction:rtl;font-family:Arial;padding:16px;background:#f7f7f7}
+body{direction:rtl;font-family:Arial;padding:16px;background:#f6f7fb}
 h2{text-align:center}
-button{width:100%;padding:14px;font-size:20px;border-radius:10px;border:0;background:#1976d2;color:white}
-#loading{text-align:center;font-size:18px;margin:14px;color:#333}
+button{width:100%;padding:16px;font-size:22px;border-radius:12px;border:0;background:#1976d2;color:white}
+#loading{text-align:center;font-size:20px;margin:18px}
+.spinner{font-size:38px;animation:flip 1s infinite}
+@keyframes flip{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
 table{width:100%;border-collapse:collapse;background:white;margin-top:12px;font-size:14px}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
-th{background:#eee}
+th{background:#e9eef5}
 .buy{color:green;font-weight:bold}
 .mid{color:#b36b00;font-weight:bold}
 .bad{color:red;font-weight:bold}
-.small{font-size:12px;color:#555}
+.small{font-size:12px;color:#555;text-align:center;margin-top:10px}
 </style>
 </head>
 <body>
 
-<h2>📊 סורק קרנות/סל ישראלי</h2>
+<h2>📊 סורק קרנות/סל לרכישה בישראל</h2>
+
 <button onclick="run()">🔵 סריקה</button>
 
 <div id="loading"></div>
@@ -148,42 +150,59 @@ th{background:#eee}
 <div id="errors" class="small"></div>
 
 <script>
-async function run(){
+let timer = null;
+let seconds = 0;
+
+function startClock(){
+    seconds = 0;
     const loading = document.getElementById("loading");
-    const table = document.getElementById("t");
-    const errors = document.getElementById("errors");
+    timer = setInterval(()=>{
+        seconds++;
+        loading.innerHTML = `
+            <div class="spinner">⏳</div>
+            <div>מבצע ניתוח... ${seconds} שניות</div>
+            <div style="font-size:14px;color:#555">זה יכול לקחת עד כמה דקות</div>
+        `;
+    },1000);
+}
 
-    loading.innerText = "⏳ מבצע סריקה... עד דקה";
-    table.innerHTML = "";
-    errors.innerHTML = "";
+function stopClock(msg){
+    clearInterval(timer);
+    document.getElementById("loading").innerText = msg;
+}
 
-    try {
+async function run(){
+    document.getElementById("t").innerHTML = "";
+    document.getElementById("errors").innerHTML = "";
+    startClock();
+
+    try{
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        const timeoutId = setTimeout(() => controller.abort(), 240000);
 
-        let r = await fetch('/scan', { signal: controller.signal });
+        let r = await fetch('/scan', {signal: controller.signal});
         clearTimeout(timeoutId);
 
         let d = await r.json();
 
-        if (!d.results || d.results.length === 0) {
-            loading.innerText = "⚠️ לא התקבלו נתונים. ייתכן שהספק לא תומך במספרי הנייר האלה.";
-            if (d.errors) errors.innerHTML = "נכשלו: " + d.errors.join(", ");
+        if(!d.results || d.results.length === 0){
+            stopClock("⚠️ לא התקבלו נתונים. נסה שוב מאוחר יותר.");
+            if(d.errors){document.getElementById("errors").innerHTML = "נכשלו: " + d.errors.join(", ");}
             return;
         }
 
-        let html = "<tr><th>#</th><th>מס׳ נייר</th><th>שם</th><th>סוג</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>ציון</th><th>המלצה</th></tr>";
+        let html = "<tr><th>#</th><th>שם לרכישה בבנק/ברוקר</th><th>בסיס ניתוח</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>ציון</th><th>המלצה</th></tr>";
 
         d.results.forEach((x,i)=>{
             let cls = "bad";
-            if (x.reco.includes("קנייה")) cls = "buy";
-            else if (x.reco.includes("מעקב")) cls = "mid";
+            if(x.reco.includes("קנייה")) cls = "buy";
+            else if(x.reco.includes("מעקב")) cls = "mid";
 
             html += `<tr>
                 <td>${i+1}</td>
-                <td>${x.sec_no}</td>
-                <td>${x.name}</td>
-                <td>${x.type}</td>
+                <td>${x.buy_name}</td>
+                <td>${x.proxy}</td>
+                <td>${x.risk}</td>
                 <td>${x.month}%</td>
                 <td>${x.q3}%</td>
                 <td>${x.half}%</td>
@@ -192,15 +211,15 @@ async function run(){
             </tr>`;
         });
 
-        table.innerHTML = html;
-        loading.innerText = "✅ הסריקה הסתיימה";
+        document.getElementById("t").innerHTML = html;
+        stopClock("✅ הסריקה הסתיימה");
 
-        if (d.errors && d.errors.length > 0) {
-            errors.innerHTML = "לא נטענו: " + d.errors.join(", ");
+        if(d.errors && d.errors.length > 0){
+            document.getElementById("errors").innerHTML = "לא נטענו: " + d.errors.join(", ");
         }
 
-    } catch(e) {
-        loading.innerText = "⚠️ הסריקה נתקעה או נחסמה. נסה שוב בעוד כמה דקות.";
+    }catch(e){
+        stopClock("⚠️ הסריקה נתקעה או חרגה מזמן. נסה שוב.");
     }
 }
 </script>
@@ -214,24 +233,35 @@ def scan():
     results = []
     errors = []
 
+    cache = {}
+
     for fund in FUNDS:
-        prices, used_symbol = fetch_series(fund["symbol"])
-        data = calc(prices)
+        try:
+            proxy = fund["proxy"]
 
-        if data:
-            score = data["score"]
+            if proxy not in cache:
+                prices = fetch_prices(proxy)
+                cache[proxy] = prices
+                time.sleep(1.2)
+            else:
+                prices = cache[proxy]
+
+            if not prices:
+                errors.append(fund["buy_name"])
+                continue
+
+            data = calc(prices, fund["risk"])
+
             results.append({
-                "sec_no": fund["sec_no"],
-                "name": fund["name"],
-                "type": fund["type"],
-                "used_symbol": used_symbol,
+                "buy_name": fund["buy_name"],
+                "proxy": fund["proxy"],
+                "risk": fund["risk"],
                 **data,
-                "reco": recommendation(score, fund["type"])
+                "reco": reco(data["score"], fund["risk"])
             })
-        else:
-            errors.append(fund["name"])
 
-        time.sleep(1)
+        except Exception:
+            errors.append(fund["buy_name"])
 
     results = sorted(results, key=lambda x: x["score"], reverse=True)[:10]
 
