@@ -27,22 +27,39 @@ def analyze(df):
 @app.route("/")
 def home():
     return render_template_string("""
-    <html><body style='direction:rtl;font-family:Arial'>
+    <html>
+    <body style='direction:rtl;font-family:Arial;padding:20px'>
+    
     <h2>📊 סורק השקעות</h2>
-    <button onclick="run()">🔵 סריקה</button>
+
+    <button onclick="run()" style="padding:10px;font-size:18px">
+    🔵 סריקה
+    </button>
+
+    <p id="loading"></p>
+
     <table id='t' border="1" style="margin-top:10px;width:100%"></table>
+
     <script>
     async function run(){
+      document.getElementById("loading").innerText = "⏳ טוען נתונים...";
+
       let r = await fetch('/scan');
       let d = await r.json();
+
       let html = "<tr><th>#</th><th>נייר</th><th>ציון</th></tr>";
+
       d.forEach((x,i)=>{
         html+=`<tr><td>${i+1}</td><td>${x.name}</td><td>${x.score}</td></tr>`;
       });
+
       document.getElementById("t").innerHTML = html;
+      document.getElementById("loading").innerText = "";
     }
     </script>
-    </body></html>
+
+    </body>
+    </html>
     """)
 
 @app.route("/scan")
