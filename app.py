@@ -1,114 +1,91 @@
 from flask import Flask, jsonify, render_template_string
-import yfinance as yf
+import requests
+import os
 import time
 
 app = Flask(__name__)
 
+API_KEY = os.getenv("API_KEY")
+
 symbols = [
-    ("1146422.TA", "זהב"),
-    ("1159093.TA", "Nasdaq"),
-    ("1159028.TA", "S&P"),
-    ("1142009.TA", 'ת"א 125'),
-    ("1159515.TA", "פי3 Nasdaq"),
+    ("TA35", "ת״א 35"),
+    ("TA125", "ת״א 125"),
+    ("USD/ILS", "דולר"),
+    ("XAU/USD", "זהב"),
+    ("AAPL", "Apple"),
+    ("MSFT", "Microsoft")
 ]
 
-def analyze(df):
-    if df is None or df.empty or "Close" not in df:
+def get_price(symbol):
+    try:
+        url = f"https://api.twelvedata.com/time_series?symbol={symbol}&interval=1day&outputsize=70&apikey={API_KEY}"
+        r = requests.get(url, timeout=10).json()
+
+        if "values" not in r:
+            return None
+
+        prices = [float(x["close"]) for x in r["values"]]
+        prices.reverse()
+
+        if len(prices) < 65:
+            return None
+
+        month = (prices[-1] / prices[-21] - 1) * 100
+        q3 = (prices[-1] / prices[-63] - 1) * 100
+
+        score = month * 0.4 + q3 * 0.6
+
+        return {
+            "month": round(month,1),
+            "q3": round(q3,1),
+            "score": round(score,1)
+        }
+
+    except:
         return None
-
-    close = df["Close"].dropna()
-
-    if len(close) < 65:
-        return None
-
-    last = float(close.iloc[-1])
-    month = (last / float(close.iloc[-21]) - 1) * 100
-    q3 = (last / float(close.iloc[-63]) - 1) * 100
-
-    score = month * 0.4 + q3 * 0.6
-
-    return {
-        "month": round(month, 1),
-        "q3": round(q3, 1),
-        "score": round(score, 1)
-    }
 
 @app.route("/")
 def home():
     return render_template_string("""
-<!DOCTYPE html>
-<html lang="he">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>סורק השקעות</title>
-<style>
-body{direction:rtl;font-family:Arial;padding:16px;background:#f7f7f7}
-h2{text-align:center}
-button{width:100%;padding:14px;font-size:20px;border-radius:10px;border:0;background:#1976d2;color:white}
-#loading{text-align:center;font-size:18px;margin:14px;color:#333}
-table{width:100%;border-collapse:collapse;background:white;margin-top:12px}
-th,td{border:1px solid #ddd;padding:9px;text-align:center}
-th{background:#eee}
-.buy{color:green;font-weight:bold}
-.mid{color:orange;font-weight:bold}
-.bad{color:red;font-weight:bold}
-</style>
-</head>
-<body>
+<html>
+<body style='direction:rtl;font-family:Arial;padding:20px'>
 
 <h2>📊 סורק השקעות</h2>
-<button onclick="run()">🔵 סריקה</button>
 
-<div id="loading"></div>
-<table id="t"></table>
+<button onclick="run()" style="padding:12px;font-size:20px;width:100%">
+🔵 סריקה
+</button>
+
+<p id="loading"></p>
+<table id="t" border="1" style="width:100%;margin-top:10px"></table>
 
 <script>
 async function run(){
-    const loading = document.getElementById("loading");
-    const table = document.getElementById("t");
+    document.getElementById("loading").innerText = "⏳ סורק נתונים...";
+    document.getElementById("t").innerHTML = "";
 
-    loading.innerText = "⏳ מבצע סריקה... זה יכול לקחת עד דקה";
-    table.innerHTML = "";
+    let r = await fetch('/scan');
+    let d = await r.json();
 
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000);
-
-        let r = await fetch('/scan', { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        let d = await r.json();
-
-        if (!d.results || d.results.length === 0) {
-            loading.innerText = "⚠️ לא התקבלו נתונים כרגע. נסה שוב בעוד כמה דקות.";
-            return;
-        }
-
-        let html = "<tr><th>#</th><th>נייר</th><th>חודש</th><th>3 חודשים</th><th>ציון</th><th>פעולה</th></tr>";
-
-        d.results.forEach((x,i)=>{
-            let action = "🔴 להימנע";
-            let cls = "bad";
-            if (x.score >= 5) { action = "🟢 קנייה"; cls = "buy"; }
-            else if (x.score >= 1) { action = "🟡 מעקב"; cls = "mid"; }
-
-            html += `<tr>
-                <td>${i+1}</td>
-                <td>${x.name}</td>
-                <td>${x.month}%</td>
-                <td>${x.q3}%</td>
-                <td>${x.score}</td>
-                <td class="${cls}">${action}</td>
-            </tr>`;
-        });
-
-        table.innerHTML = html;
-        loading.innerText = "✅ הסריקה הסתיימה";
-
-    } catch(e) {
-        loading.innerText = "⚠️ הסריקה נתקעה או נחסמה. נסה שוב בעוד כמה דקות.";
+    if(d.length === 0){
+        document.getElementById("loading").innerText = "⚠️ אין נתונים כרגע";
+        return;
     }
+
+    let html = "<tr><th>#</th><th>נייר</th><th>חודש</th><th>3ח׳</th><th>ציון</th></tr>";
+
+    d.forEach((x,i)=>{
+        html += `<tr>
+        <td>${i+1}</td>
+        <td>${x.name}</td>
+        <td>${x.month}%</td>
+        <td>${x.q3}%</td>
+        <td>${x.score}</td>
+        </tr>`;
+    });
+
+    document.getElementById("t").innerHTML = html;
+    document.getElementById("loading").innerText = "✅ סיום";
 }
 </script>
 
@@ -119,42 +96,19 @@ async function run(){
 @app.route("/scan")
 def scan():
     results = []
-    errors = []
 
     for symbol, name in symbols:
-        try:
-            df = yf.download(
-                symbol,
-                period="6mo",
-                interval="1d",
-                progress=False,
-                threads=False,
-                timeout=10
-            )
+        data = get_price(symbol)
+        if data:
+            results.append({
+                "name": name,
+                **data
+            })
+        time.sleep(1)
 
-            res = analyze(df)
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
 
-            if res:
-                results.append({
-                    "symbol": symbol,
-                    "name": name,
-                    **res
-                })
-            else:
-                errors.append(name)
-
-            time.sleep(1.2)
-
-        except Exception as e:
-            errors.append(name)
-            continue
-
-    results = sorted(results, key=lambda x: x["score"], reverse=True)[:10]
-
-    return jsonify({
-        "results": results,
-        "errors": errors
-    })
+    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
