@@ -1,79 +1,165 @@
 from flask import Flask, jsonify, render_template_string
 import yfinance as yf
+import time
 
 app = Flask(__name__)
 
 symbols = [
-("1146422.TA","זהב"),
-("1159093.TA","Nasdaq"),
-("1159028.TA","S&P"),
-("1142009.TA","ת\"א125"),
-("1159515.TA","פי3 Nasdaq"),
-("1159531.TA","פי3 S&P"),
-("1159614.TA","פי3 ת\"א"),
-("1159267.TA","טכנולוגיה"),
-("1159234.TA","בנקים"),
-("1159275.TA","אנרגיה")
+    ("1146422.TA", "זהב"),
+    ("1159093.TA", "Nasdaq"),
+    ("1159028.TA", "S&P"),
+    ("1142009.TA", 'ת"א 125'),
+    ("1159515.TA", "פי3 Nasdaq"),
+    ("1159531.TA", "פי3 S&P"),
+    ("1159614.TA", 'פי3 ת"א'),
+    ("1159267.TA", "טכנולוגיה"),
+    ("1159234.TA", "בנקים"),
+    ("1159275.TA", "אנרגיה")
 ]
 
 def analyze(df):
-    close = df["Close"]
-    if len(close) < 70:
+    if df is None or df.empty or "Close" not in df:
         return None
-    month = (close[-1]/close[-21]-1)*100
-    q3 = (close[-1]/close[-63]-1)*100
-    return month*0.4 + q3*0.6
+
+    close = df["Close"].dropna()
+
+    if len(close) < 65:
+        return None
+
+    last = float(close.iloc[-1])
+    month = (last / float(close.iloc[-21]) - 1) * 100
+    q3 = (last / float(close.iloc[-63]) - 1) * 100
+
+    score = month * 0.4 + q3 * 0.6
+
+    return {
+        "month": round(month, 1),
+        "q3": round(q3, 1),
+        "score": round(score, 1)
+    }
 
 @app.route("/")
 def home():
     return render_template_string("""
-    <html>
-    <body style='direction:rtl;font-family:Arial;padding:20px'>
-    
-    <h2>📊 סורק השקעות</h2>
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>סורק השקעות</title>
+<style>
+body{direction:rtl;font-family:Arial;padding:16px;background:#f7f7f7}
+h2{text-align:center}
+button{width:100%;padding:14px;font-size:20px;border-radius:10px;border:0;background:#1976d2;color:white}
+#loading{text-align:center;font-size:18px;margin:14px;color:#333}
+table{width:100%;border-collapse:collapse;background:white;margin-top:12px}
+th,td{border:1px solid #ddd;padding:9px;text-align:center}
+th{background:#eee}
+.buy{color:green;font-weight:bold}
+.mid{color:orange;font-weight:bold}
+.bad{color:red;font-weight:bold}
+</style>
+</head>
+<body>
 
-    <button onclick="run()" style="padding:10px;font-size:18px">
-    🔵 סריקה
-    </button>
+<h2>📊 סורק השקעות</h2>
+<button onclick="run()">🔵 סריקה</button>
 
-    <p id="loading"></p>
+<div id="loading"></div>
+<table id="t"></table>
 
-    <table id='t' border="1" style="margin-top:10px;width:100%"></table>
+<script>
+async function run(){
+    const loading = document.getElementById("loading");
+    const table = document.getElementById("t");
 
-    <script>
-    async function run(){
-      document.getElementById("loading").innerText = "⏳ טוען נתונים...";
+    loading.innerText = "⏳ מבצע סריקה... זה יכול לקחת עד דקה";
+    table.innerHTML = "";
 
-      let r = await fetch('/scan');
-      let d = await r.json();
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
 
-      let html = "<tr><th>#</th><th>נייר</th><th>ציון</th></tr>";
+        let r = await fetch('/scan', { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-      d.forEach((x,i)=>{
-        html+=`<tr><td>${i+1}</td><td>${x.name}</td><td>${x.score}</td></tr>`;
-      });
+        let d = await r.json();
 
-      document.getElementById("t").innerHTML = html;
-      document.getElementById("loading").innerText = "";
+        if (!d.results || d.results.length === 0) {
+            loading.innerText = "⚠️ לא התקבלו נתונים כרגע. נסה שוב בעוד כמה דקות.";
+            return;
+        }
+
+        let html = "<tr><th>#</th><th>נייר</th><th>חודש</th><th>3 חודשים</th><th>ציון</th><th>פעולה</th></tr>";
+
+        d.results.forEach((x,i)=>{
+            let action = "🔴 להימנע";
+            let cls = "bad";
+            if (x.score >= 5) { action = "🟢 קנייה"; cls = "buy"; }
+            else if (x.score >= 1) { action = "🟡 מעקב"; cls = "mid"; }
+
+            html += `<tr>
+                <td>${i+1}</td>
+                <td>${x.name}</td>
+                <td>${x.month}%</td>
+                <td>${x.q3}%</td>
+                <td>${x.score}</td>
+                <td class="${cls}">${action}</td>
+            </tr>`;
+        });
+
+        table.innerHTML = html;
+        loading.innerText = "✅ הסריקה הסתיימה";
+
+    } catch(e) {
+        loading.innerText = "⚠️ הסריקה נתקעה או נחסמה. נסה שוב בעוד כמה דקות.";
     }
-    </script>
+}
+</script>
 
-    </body>
-    </html>
-    """)
+</body>
+</html>
+""")
 
 @app.route("/scan")
 def scan():
     results = []
-    for s,n in symbols:
-        try:
-            df = yf.download(s, period="6mo", progress=False)
-            score = analyze(df)
-            if score:
-                results.append({"name":n,"score":round(score,1)})
-        except:
-            pass
-    results = sorted(results, key=lambda x:x["score"], reverse=True)[:10]
-    return jsonify(results)
+    errors = []
 
-app.run(host="0.0.0.0", port=10000)
+    for symbol, name in symbols:
+        try:
+            df = yf.download(
+                symbol,
+                period="6mo",
+                interval="1d",
+                progress=False,
+                threads=False,
+                timeout=10
+            )
+
+            res = analyze(df)
+
+            if res:
+                results.append({
+                    "symbol": symbol,
+                    "name": name,
+                    **res
+                })
+            else:
+                errors.append(name)
+
+            time.sleep(1.2)
+
+        except Exception as e:
+            errors.append(name)
+            continue
+
+    results = sorted(results, key=lambda x: x["score"], reverse=True)[:10]
+
+    return jsonify({
+        "results": results,
+        "errors": errors
+    })
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
