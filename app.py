@@ -3,6 +3,8 @@ import requests
 import os
 import time
 import statistics
+import xml.etree.ElementTree as ET
+from urllib.parse import quote_plus
 
 try:
     from pytrends.request import TrendReq
@@ -13,27 +15,27 @@ app = Flask(__name__)
 API_KEY = os.getenv("API_KEY")
 
 FUNDS = [
-    {"name": "קרן סל נאסד״ק 100", "proxy": "QQQ", "risk": "רגיל", "sector": "tech"},
-    {"name": "איילון / קרן ממונפת פי 3 נאסד״ק", "proxy": "QQQ", "risk": "פי 3", "sector": "tech"},
-    {"name": "קרן ממונפת פי 2 נאסד״ק", "proxy": "QQQ", "risk": "פי 2", "sector": "tech"},
+    {"name": "קרן סל נאסד״ק 100", "proxy": "QQQ", "risk": "רגיל", "sector": "tech", "news": "Nasdaq AI technology stocks"},
+    {"name": "איילון / קרן ממונפת פי 3 נאסד״ק", "proxy": "QQQ", "risk": "פי 3", "sector": "tech", "news": "Nasdaq AI technology stocks"},
+    {"name": "קרן ממונפת פי 2 נאסד״ק", "proxy": "QQQ", "risk": "פי 2", "sector": "tech", "news": "Nasdaq AI technology stocks"},
 
-    {"name": "קרן סל S&P 500", "proxy": "SPY", "risk": "רגיל", "sector": "market"},
-    {"name": "איילון / קרן ממונפת פי 3 S&P 500", "proxy": "SPY", "risk": "פי 3", "sector": "market"},
-    {"name": "קרן ממונפת פי 2 S&P 500", "proxy": "SPY", "risk": "פי 2", "sector": "market"},
+    {"name": "קרן סל S&P 500", "proxy": "SPY", "risk": "רגיל", "sector": "market", "news": "S&P 500 stock market outlook"},
+    {"name": "איילון / קרן ממונפת פי 3 S&P 500", "proxy": "SPY", "risk": "פי 3", "sector": "market", "news": "S&P 500 stock market outlook"},
+    {"name": "קרן ממונפת פי 2 S&P 500", "proxy": "SPY", "risk": "פי 2", "sector": "market", "news": "S&P 500 stock market outlook"},
 
-    {"name": "קרן סל ישראל / ת״א 125", "proxy": "EIS", "risk": "רגיל", "sector": "israel"},
-    {"name": "קרן ממונפת פי 3 ת״א 125", "proxy": "EIS", "risk": "פי 3", "sector": "israel"},
+    {"name": "קרן סל ישראל / ת״א 125", "proxy": "EIS", "risk": "רגיל", "sector": "israel", "news": "Israel stock market economy shekel"},
+    {"name": "קרן ממונפת פי 3 ת״א 125", "proxy": "EIS", "risk": "פי 3", "sector": "israel", "news": "Israel stock market economy shekel"},
 
-    {"name": "קרן סל שווקים מתעוררים", "proxy": "EEM", "risk": "רגיל", "sector": "emerging"},
-    {"name": "קרן סל טאיוואן / מזרח אסיה", "proxy": "EWT", "risk": "רגיל", "sector": "asia"},
-    {"name": "קרן סל קוריאה / מזרח אסיה", "proxy": "EWY", "risk": "רגיל", "sector": "asia"},
-    {"name": "קרן סל יפן", "proxy": "EWJ", "risk": "רגיל", "sector": "asia"},
-    {"name": "קרן סל הודו", "proxy": "INDA", "risk": "רגיל", "sector": "asia"},
+    {"name": "קרן סל שווקים מתעוררים", "proxy": "EEM", "risk": "רגיל", "sector": "emerging", "news": "emerging markets stocks outlook"},
+    {"name": "קרן סל טאיוואן / מזרח אסיה", "proxy": "EWT", "risk": "רגיל", "sector": "asia", "news": "Taiwan semiconductors stocks TSMC"},
+    {"name": "קרן סל קוריאה / מזרח אסיה", "proxy": "EWY", "risk": "רגיל", "sector": "asia", "news": "South Korea stocks chips semiconductors"},
+    {"name": "קרן סל יפן", "proxy": "EWJ", "risk": "רגיל", "sector": "asia", "news": "Japan stocks Nikkei yen"},
+    {"name": "קרן סל הודו", "proxy": "INDA", "risk": "רגיל", "sector": "asia", "news": "India stock market outlook"},
 
-    {"name": "קרן סל זהב / קסם זהב", "proxy": "GLD", "risk": "סחורה", "sector": "gold"},
-    {"name": "קרן סל כסף", "proxy": "SLV", "risk": "סחורה", "sector": "metal"},
-    {"name": "קרן סל נפט", "proxy": "USO", "risk": "סחורה", "sector": "oil"},
-    {"name": "קרן דולר / חשיפה לדולר", "proxy": "UUP", "risk": "מטבע", "sector": "dollar"},
+    {"name": "קרן סל זהב / קסם זהב", "proxy": "GLD", "risk": "סחורה", "sector": "gold", "news": "gold price outlook interest rates"},
+    {"name": "קרן סל כסף", "proxy": "SLV", "risk": "סחורה", "sector": "metal", "news": "silver price outlook"},
+    {"name": "קרן סל נפט", "proxy": "USO", "risk": "סחורה", "sector": "oil", "news": "oil price OPEC crude outlook"},
+    {"name": "קרן דולר / חשיפה לדולר", "proxy": "UUP", "risk": "מטבע", "sector": "dollar", "news": "US dollar outlook interest rates"},
 ]
 
 MACRO_SYMBOLS = {
@@ -45,6 +47,18 @@ MACRO_SYMBOLS = {
     "UUP": "דולר",
     "EIS": "ישראל",
 }
+
+POSITIVE_WORDS = [
+    "rally", "surge", "gain", "gains", "rise", "rises", "strong", "record",
+    "bullish", "upgrade", "growth", "optimism", "beat", "higher", "rebound",
+    "positive", "up"
+]
+
+NEGATIVE_WORDS = [
+    "fall", "falls", "drop", "drops", "slump", "selloff", "crash", "fear",
+    "risk", "war", "inflation", "recession", "downgrade", "weak", "lower",
+    "negative", "down", "pressure"
+]
 
 def fetch_prices(symbol):
     if not API_KEY:
@@ -112,6 +126,51 @@ def calc_metrics(prices):
         "vol": round(vol, 1),
         "graph_score": round(graph_score, 1)
     }
+
+def google_news_score(query):
+    try:
+        url = "https://news.google.com/rss/search?q=" + quote_plus(query) + "&hl=en-US&gl=US&ceid=US:en"
+        r = requests.get(url, timeout=12)
+        root = ET.fromstring(r.content)
+
+        titles = []
+        for item in root.findall(".//item")[:10]:
+            title = item.find("title")
+            if title is not None and title.text:
+                titles.append(title.text.lower())
+
+        if not titles:
+            return {
+                "news_score": 0,
+                "news_label": "🟡 אין אקטואליה ברורה",
+                "headline": "לא נמצאו כותרות חדשות"
+            }
+
+        joined = " ".join(titles)
+        pos = sum(joined.count(w) for w in POSITIVE_WORDS)
+        neg = sum(joined.count(w) for w in NEGATIVE_WORDS)
+
+        score = max(min((pos - neg) * 0.8, 3), -3)
+
+        if score >= 1.5:
+            label = "🟢 אקטואליה חיובית"
+        elif score <= -1.5:
+            label = "🔴 אקטואליה שלילית"
+        else:
+            label = "🟡 אקטואליה ניטרלית"
+
+        return {
+            "news_score": round(score, 1),
+            "news_label": label,
+            "headline": titles[0][:120]
+        }
+
+    except Exception:
+        return {
+            "news_score": 0,
+            "news_label": "🟡 ללא בדיקת חדשות",
+            "headline": "מקור החדשות לא זמין כרגע"
+        }
 
 def trend_sentiment():
     if TrendReq is None:
@@ -211,7 +270,7 @@ def macro_context(price_cache):
 
     if gold and gold["month"] > 0:
         macro_boosts["gold"] += 2
-        notes.append("זהב חיובי — סימן לביקוש הגנתי / סחורות")
+        notes.append("זהב חיובי — ביקוש הגנתי / סחורות")
 
     if oil and oil["month"] > 0:
         macro_boosts["oil"] += 2
@@ -237,7 +296,7 @@ def macro_context(price_cache):
 
     return regime, macro_boosts, notes
 
-def final_score(metrics, fund, macro_boosts, sentiment):
+def final_score(metrics, fund, macro_boosts, sentiment, news_score):
     score = metrics["graph_score"]
 
     score += macro_boosts.get(fund["sector"], 0)
@@ -249,6 +308,8 @@ def final_score(metrics, fund, macro_boosts, sentiment):
         score += sentiment["fear_boost"]
 
     score += sentiment["inflation_penalty"]
+
+    score += news_score
 
     if fund["risk"] == "פי 3":
         score = score * 1.20 - 2.0
@@ -273,7 +334,7 @@ def recommendation(score, risk):
         return "🟡 מעקב"
     return "🔴 להימנע"
 
-def reason_text(fund, metrics, macro_boosts, sentiment):
+def reason_text(fund, metrics, macro_boosts, sentiment, news):
     reasons = []
 
     if metrics["q3"] > 5:
@@ -289,16 +350,15 @@ def reason_text(fund, metrics, macro_boosts, sentiment):
     if macro_boosts.get(fund["sector"], 0) > 0:
         reasons.append("מאקרו תומך")
 
-    if fund["sector"] == "tech" and sentiment["tech_boost"] > 0:
-        reasons.append("דיבור חזק על AI/טכנולוגיה")
-
-    if fund["sector"] == "gold" and sentiment["fear_boost"] > 0:
-        reasons.append("דיבור פחד תומך בזהב")
+    if news["news_score"] > 0:
+        reasons.append("אקטואליה חיובית")
+    elif news["news_score"] < 0:
+        reasons.append("אקטואליה שלילית")
 
     if fund["risk"] in ["פי 2", "פי 3"]:
-        reasons.append("ממונף — מתאים רק לסיכון גבוה")
+        reasons.append("ממונף — סיכון גבוה")
 
-    return " | ".join(reasons[:3]) if reasons else "אין יתרון ברור"
+    return " | ".join(reasons[:4]) if reasons else "אין יתרון ברור"
 
 @app.route("/")
 def home():
@@ -338,8 +398,14 @@ th{background:#e9eef5}
 ציון מתחת 1 → 🔴 להימנע<br><br>
 
 <b>מה הציון כולל:</b><br>
-75% ניתוח גרפי: שבוע, חודש, 3 חודשים, חצי שנה, שנה ותנודתיות.<br>
-25% מאקרו/אקטואליה: מצב שוק עולמי, דולר, זהב, נפט, ישראל, שווקים מתעוררים ודיבור שוק דרך Google Trends.<br><br>
+65% ניתוח גרפי: שבוע, חודש, 3 חודשים, חצי שנה, שנה ותנודתיות.<br>
+20% מאקרו: מצב שוק עולמי, דולר, זהב, נפט, ישראל, שווקים מתעוררים.<br>
+15% אקטואליה: בדיקת כותרות חדשות רק למובילים לפי הגרף, כדי לוודא שיש/אין רוח גבית אקטואלית.<br><br>
+
+<b>אקטואליה:</b><br>
+🟢 אקטואליה חיובית → הכותרות תומכות בתחום.<br>
+🟡 ניטרלית → אין איתות ברור.<br>
+🔴 שלילית → הכותרות פועלות נגד התחום.<br><br>
 
 <b>שים לב:</b> ממונפות פי 2/3 מקבלות קנס סיכון. גם המלצת קנייה בהן היא אגרסיבית בלבד.
 </div>
@@ -363,7 +429,7 @@ function startClock(){
         loading.innerHTML = `
             <div class="spinner">⏳</div>
             <div>מבצע ניתוח... ${seconds} שניות</div>
-            <div style="font-size:14px;color:#555">בודק גרפים, מאקרו ודיבור שוק</div>
+            <div style="font-size:14px;color:#555">בודק גרפים, מאקרו ואקטואליה למובילים</div>
         `;
     },1000);
 }
@@ -381,7 +447,7 @@ async function run(){
 
     try{
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 240000);
+        const timeoutId = setTimeout(() => controller.abort(), 300000);
 
         let r = await fetch('/scan', {signal: controller.signal});
         clearTimeout(timeoutId);
@@ -401,7 +467,7 @@ async function run(){
             "<b>📌 הערות:</b><br>" +
             d.notes.join("<br>");
 
-        let html = "<tr><th>#</th><th>שם לרכישה</th><th>בסיס ניתוח</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>ציון</th><th>המלצה</th><th>למה</th></tr>";
+        let html = "<tr><th>#</th><th>שם לרכישה</th><th>בסיס ניתוח</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>ציון</th><th>אקטואליה</th><th>המלצה</th><th>למה</th></tr>";
 
         d.results.forEach((x,i)=>{
             let cls = "bad";
@@ -417,6 +483,7 @@ async function run(){
                 <td>${x.q3}%</td>
                 <td>${x.half}%</td>
                 <td>${x.score}</td>
+                <td>${x.news_label}<br><span class="small">${x.headline}</span></td>
                 <td class="${cls}">${x.reco}</td>
                 <td>${x.reason}</td>
             </tr>`;
@@ -455,6 +522,8 @@ def scan():
     regime, macro_boosts, notes = macro_context(price_cache)
     sent = trend_sentiment()
 
+    preliminary = []
+
     for fund in FUNDS:
         try:
             prices = price_cache.get(fund["proxy"])
@@ -463,22 +532,50 @@ def scan():
                 continue
 
             metrics = calc_metrics(prices)
-            score = final_score(metrics, fund, macro_boosts, sent)
-            reco = recommendation(score, fund["risk"])
+            graph_only_score = metrics["graph_score"]
 
-            results.append({
-                "name": fund["name"],
-                "proxy": fund["proxy"],
-                "risk": fund["risk"],
-                "month": metrics["month"],
-                "q3": metrics["q3"],
-                "half": metrics["half"],
-                "score": score,
-                "reco": reco,
-                "reason": reason_text(fund, metrics, macro_boosts, sent)
+            preliminary.append({
+                "fund": fund,
+                "metrics": metrics,
+                "graph_only_score": graph_only_score
             })
+
         except Exception:
             errors.append(fund["name"])
+
+    preliminary = sorted(preliminary, key=lambda x: x["graph_only_score"], reverse=True)
+
+    news_map = {}
+    for item in preliminary[:8]:
+        fund = item["fund"]
+        news_map[fund["name"]] = google_news_score(fund["news"])
+        time.sleep(1.0)
+
+    for item in preliminary:
+        fund = item["fund"]
+        metrics = item["metrics"]
+        news = news_map.get(fund["name"], {
+            "news_score": 0,
+            "news_label": "🟡 לא נבדק",
+            "headline": "אקטואליה נבדקת רק למובילים לפי הגרף"
+        })
+
+        score = final_score(metrics, fund, macro_boosts, sent, news["news_score"])
+        reco = recommendation(score, fund["risk"])
+
+        results.append({
+            "name": fund["name"],
+            "proxy": fund["proxy"],
+            "risk": fund["risk"],
+            "month": metrics["month"],
+            "q3": metrics["q3"],
+            "half": metrics["half"],
+            "score": score,
+            "news_label": news["news_label"],
+            "headline": news["headline"],
+            "reco": reco,
+            "reason": reason_text(fund, metrics, macro_boosts, sent, news)
+        })
 
     results = sorted(results, key=lambda x: x["score"], reverse=True)[:10]
 
