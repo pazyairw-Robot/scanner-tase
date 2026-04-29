@@ -9,45 +9,33 @@ app = Flask(__name__)
 API_KEY = os.getenv("API_KEY")
 
 FUNDS = [
-    # סחורות
-    {"name": "קרן סל נפט", "proxy": "USO", "risk": "סחורה", "theme": "oil"},
-    {"name": "קרן סל זהב / קסם זהב", "proxy": "GLD", "risk": "סחורה", "theme": "gold"},
-    {"name": "קרן סל כסף", "proxy": "SLV", "risk": "סחורה", "theme": "silver"},
+    {"name": "קסם LBMA Gold Price PM USD ETF", "sec_no": "1146422", "proxy": "GLD", "risk": "סחורה", "theme": "gold"},
 
-    # מזרח / אסיה
-    {"name": "קרן סל קוריאה / מזרח אסיה", "proxy": "EWY", "risk": "רגיל", "theme": "asia"},
-    {"name": "קרן סל טאיוואן / מזרח אסיה", "proxy": "EWT", "risk": "רגיל", "theme": "semis"},
-    {"name": "קרן סל יפן", "proxy": "EWJ", "risk": "רגיל", "theme": "asia"},
-    {"name": "קרן סל הודו", "proxy": "INDA", "risk": "רגיל", "theme": "asia"},
-    {"name": "קרן סל סין", "proxy": "MCHI", "risk": "רגיל", "theme": "china"},
-    {"name": "קרן שווקים מתעוררים", "proxy": "EEM", "risk": "רגיל", "theme": "emerging"},
+    {"name": "איילון אקסטרים Nasdaq 100 פי 3", "sec_no": "5128947", "proxy": "QQQ", "risk": "ממונף פי 3", "theme": "tech"},
+    {"name": "איילון אקסטרים S&P 500 פי 3", "sec_no": "5117759", "proxy": "SPY", "risk": "ממונף פי 3", "theme": "market"},
 
-    # שבבים / AI
-    {"name": "קרן סל שבבים / Semiconductors", "proxy": "SOXX", "risk": "רגיל", "theme": "semis"},
-    {"name": "קרן ממונפת פי 2 שבבים", "proxy": "SOXX", "risk": "ממונף פי 2", "theme": "semis"},
-    {"name": "קרן ממונפת פי 3 שבבים", "proxy": "SOXX", "risk": "ממונף פי 3", "theme": "semis"},
+    {"name": "קרן סל ישראלית עוקבת Nasdaq 100", "sec_no": "בדוק בבנק", "proxy": "QQQ", "risk": "רגיל", "theme": "tech"},
+    {"name": "קרן סל ישראלית עוקבת S&P 500", "sec_no": "בדוק בבנק", "proxy": "SPY", "risk": "רגיל", "theme": "market"},
 
-    # נאסדק / טכנולוגיה
-    {"name": "קרן סל נאסד״ק 100", "proxy": "QQQ", "risk": "רגיל", "theme": "tech"},
-    {"name": "קרן ממונפת פי 2 נאסד״ק", "proxy": "QQQ", "risk": "ממונף פי 2", "theme": "tech"},
-    {"name": "קרן ממונפת פי 3 נאסד״ק / איילון אקסטרים", "proxy": "QQQ", "risk": "ממונף פי 3", "theme": "tech"},
+    {"name": "קרן סל / קרן מחקה חשיפה לשבבים", "sec_no": "בדוק בבנק", "proxy": "SOXX", "risk": "רגיל", "theme": "semis"},
 
-    # S&P / שוק כללי
-    {"name": "קרן סל S&P 500", "proxy": "SPY", "risk": "רגיל", "theme": "market"},
-    {"name": "קרן ממונפת פי 2 S&P 500", "proxy": "SPY", "risk": "ממונף פי 2", "theme": "market"},
-    {"name": "קרן ממונפת פי 3 S&P 500 / איילון אקסטרים", "proxy": "SPY", "risk": "ממונף פי 3", "theme": "market"},
+    {"name": "קרן סל קוריאה / מזרח אסיה", "sec_no": "בדוק בבנק", "proxy": "EWY", "risk": "רגיל", "theme": "asia"},
+    {"name": "קרן סל טאיוואן / מזרח אסיה", "sec_no": "בדוק בבנק", "proxy": "EWT", "risk": "רגיל", "theme": "semis"},
+    {"name": "קרן סל יפן", "sec_no": "בדוק בבנק", "proxy": "EWJ", "risk": "רגיל", "theme": "asia"},
+    {"name": "קרן סל הודו", "sec_no": "בדוק בבנק", "proxy": "INDA", "risk": "רגיל", "theme": "asia"},
+    {"name": "קרן סל סין", "sec_no": "בדוק בבנק", "proxy": "MCHI", "risk": "רגיל", "theme": "china"},
+    {"name": "קרן שווקים מתעוררים", "sec_no": "בדוק בבנק", "proxy": "EEM", "risk": "רגיל", "theme": "emerging"},
 
-    # ישראל
-    {"name": "קרן סל ישראל / ת״א 125", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
-    {"name": "קרן סל ישראל / ת״א 35", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
-    {"name": "קרן ממונפת פי 2 ת״א 125", "proxy": "EIS", "risk": "ממונף פי 2", "theme": "israel"},
-    {"name": "קרן ממונפת פי 3 ת״א 125", "proxy": "EIS", "risk": "ממונף פי 3", "theme": "israel"},
+    {"name": "קרן סל ישראל / ת״א 125 - proxy ישראל", "sec_no": "בדוק בבנק", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
+    {"name": "קרן סל ישראל / ת״א 35 - proxy ישראל", "sec_no": "בדוק בבנק", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
 
-    # סקטורים
-    {"name": "קרן אנרגיה", "proxy": "VDE", "risk": "רגיל", "theme": "energy"},
-    {"name": "קרן פיננסים / בנקים", "proxy": "KBE", "risk": "רגיל", "theme": "banks"},
-    {"name": "קרן דולר / חשיפה לדולר", "proxy": "UUP", "risk": "מטבע", "theme": "dollar"},
+    {"name": "קרן אנרגיה", "sec_no": "בדוק בבנק", "proxy": "VDE", "risk": "רגיל", "theme": "energy"},
+    {"name": "קרן פיננסים / בנקים", "sec_no": "בדוק בבנק", "proxy": "KBE", "risk": "רגיל", "theme": "banks"},
+    {"name": "קרן דולר / חשיפה לדולר", "sec_no": "בדוק בבנק", "proxy": "UUP", "risk": "מטבע", "theme": "dollar"},
+    {"name": "קרן סל נפט", "sec_no": "בדוק בבנק", "proxy": "USO", "risk": "סחורה", "theme": "oil"},
+    {"name": "קרן סל כסף", "sec_no": "בדוק בבנק", "proxy": "SLV", "risk": "סחורה", "theme": "silver"},
 ]
+
 
 def td_prices(symbol):
     url = "https://api.twelvedata.com/time_series"
@@ -73,6 +61,7 @@ def td_prices(symbol):
     prices.reverse()
     return prices if len(prices) >= 65 else None
 
+
 def news_count(query):
     try:
         end = datetime.utcnow()
@@ -90,14 +79,15 @@ def news_count(query):
 
         data = requests.get(url, params=params, timeout=15).json()
         return len(data.get("articles", []))
-
     except Exception:
         return 0
+
 
 def perf(prices, days):
     if not prices or len(prices) < days + 1:
         return 0
     return (prices[-1] / prices[-days] - 1) * 100
+
 
 def calc_graph(prices):
     week = perf(prices, 5)
@@ -131,6 +121,7 @@ def calc_graph(prices):
         "vol": round(vol, 1),
         "graph_score": round(graph_score, 1)
     }
+
 
 def build_market_context(price_cache):
     required = ["SPY", "QQQ", "SOXX", "EEM", "EIS", "GLD", "USO", "UUP", "TLT"]
@@ -203,6 +194,7 @@ def build_market_context(price_cache):
 
     return ctx
 
+
 def forward_adjust(fund, ctx, data):
     theme = fund["theme"]
     risk = fund["risk"]
@@ -210,7 +202,6 @@ def forward_adjust(fund, ctx, data):
     adj = 0
     reasons = []
 
-    # שוק כללי
     if ctx["spy"] > 2 and ctx["qqq"] > 2:
         if theme in ["market", "tech", "semis", "asia", "emerging"]:
             adj += 2
@@ -220,7 +211,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 3
             reasons.append("לחץ בשוק מניות פוגע בהמשך")
 
-    # שבבים / AI
     if theme == "semis":
         if ctx["soxx"] > 3:
             adj += 3
@@ -232,7 +222,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("נאסד״ק חלש פוגע בשבבים")
 
-    # טכנולוגיה / נאסדק
     if theme == "tech":
         if ctx["news"]["ai"] >= 8:
             adj += 2
@@ -241,7 +230,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("דולר/ריבית עלולים ללחוץ על טכנולוגיה")
 
-    # נפט
     if theme == "oil":
         if ctx["uso"] > 5 and ctx["news"]["oil"] >= 8:
             adj -= 8
@@ -253,7 +241,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("מגמת נפט שלילית")
 
-    # אנרגיה
     if theme == "energy":
         if ctx["uso"] > 3 and ctx["news"]["oil"] < 8:
             adj += 2
@@ -262,7 +249,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("אנרגיה חשופה לתיקון אם אקטואליית נפט תירגע")
 
-    # זהב / כסף
     if theme in ["gold", "silver"]:
         if ctx["news"]["war"] >= 8 or ctx["gld"] > 3:
             adj += 3
@@ -274,7 +260,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 1
             reasons.append("דולר חזק מקשה על מתכות")
 
-    # מזרח / מתעוררים
     if theme in ["asia", "emerging"]:
         if ctx["eem"] > 2:
             adj += 3
@@ -286,7 +271,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("חשש האטה עולמית")
 
-    # סין
     if theme == "china":
         if ctx["news"]["china"] >= 8:
             adj -= 2
@@ -295,7 +279,6 @@ def forward_adjust(fund, ctx, data):
             adj += 1
             reasons.append("מתעוררים חיוביים נותנים תמיכה חלקית")
 
-    # ישראל
     if theme == "israel":
         if ctx["eis"] > 2:
             adj += 2
@@ -307,7 +290,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("ישראל חלשה בגרף")
 
-    # בנקים
     if theme == "banks":
         if ctx["news"]["rates"] >= 10:
             adj += 1
@@ -316,7 +298,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 3
             reasons.append("חשש האטה/אשראי פוגע בבנקים")
 
-    # דולר
     if theme == "dollar":
         if ctx["uup"] > 2:
             adj += 2
@@ -325,7 +306,6 @@ def forward_adjust(fund, ctx, data):
             adj -= 1
             reasons.append("Risk-on מפחית עדיפות לדולר")
 
-    # ממונפות
     if "פי 3" in risk:
         adj -= 3
         reasons.append("ממונף פי 3 — קנס סיכון")
@@ -344,6 +324,7 @@ def forward_adjust(fund, ctx, data):
 
     return round(adj, 1), " | ".join(reasons[:4])
 
+
 def recommendation(score, risk):
     if "פי 3" in risk:
         if score >= 12:
@@ -359,6 +340,7 @@ def recommendation(score, risk):
     if score >= 1:
         return "🟡 מעקב"
     return "🔴 להימנע"
+
 
 @app.route("/")
 def home():
@@ -394,7 +376,8 @@ th{background:#e9eef5}
 <b>מקרא ציון סופי:</b><br>
 🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-גרף + מאקרו עולמי + אקטואליה + הסתכלות קדימה + קנס סיכון למינוף/אירוע זמני.
+גרף + מאקרו עולמי + אקטואליה + הסתכלות קדימה + קנס סיכון למינוף/אירוע זמני.<br>
+<b>חשוב:</b> איפה שמופיע "בדוק בבנק" — אין מספר נייר ודאי בקוד, ולכן צריך לאתר לפי שם/קטגוריה בבנק.
 </div>
 
 <button onclick="run()">🔵 סריקה</button>
@@ -437,7 +420,7 @@ async function run(){
         document.getElementById("market").innerHTML =
             `<div class="legend"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>`;
 
-        let html="<tr><th>#</th><th>שם לרכישה</th><th>בסיס</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>סיבה</th></tr>";
+        let html="<tr><th>#</th><th>שם לרכישה</th><th>מס׳ נייר</th><th>בסיס ניתוח</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>סיבה</th></tr>";
 
         d.results.forEach((x,i)=>{
             let cls="bad";
@@ -447,6 +430,7 @@ async function run(){
             html+=`<tr>
                 <td>${i+1}</td>
                 <td>${x.name}</td>
+                <td>${x.sec_no}</td>
                 <td>${x.proxy}</td>
                 <td>${x.risk}</td>
                 <td>${x.month}%</td>
@@ -472,6 +456,7 @@ async function run(){
 </body>
 </html>
 """)
+
 
 @app.route("/scan")
 def scan():
@@ -500,6 +485,7 @@ def scan():
 
             results.append({
                 "name": fund["name"],
+                "sec_no": fund["sec_no"],
                 "proxy": proxy,
                 "risk": fund["risk"],
                 **data,
@@ -519,6 +505,7 @@ def scan():
         "results": results,
         "errors": errors
     })
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
