@@ -3,67 +3,53 @@ import requests
 import os
 import time
 import statistics
-import xml.etree.ElementTree as ET
-from urllib.parse import quote_plus
-
-try:
-    from pytrends.request import TrendReq
-except Exception:
-    TrendReq = None
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 API_KEY = os.getenv("API_KEY")
 
 FUNDS = [
-    {"name": "קרן סל נאסד״ק 100", "proxy": "QQQ", "risk": "רגיל", "sector": "tech", "news": "Nasdaq AI technology stocks"},
-    {"name": "איילון / קרן ממונפת פי 3 נאסד״ק", "proxy": "QQQ", "risk": "פי 3", "sector": "tech", "news": "Nasdaq AI technology stocks"},
-    {"name": "קרן ממונפת פי 2 נאסד״ק", "proxy": "QQQ", "risk": "פי 2", "sector": "tech", "news": "Nasdaq AI technology stocks"},
+    # סחורות
+    {"name": "קרן סל נפט", "proxy": "USO", "risk": "סחורה", "theme": "oil"},
+    {"name": "קרן סל זהב / קסם זהב", "proxy": "GLD", "risk": "סחורה", "theme": "gold"},
+    {"name": "קרן סל כסף", "proxy": "SLV", "risk": "סחורה", "theme": "silver"},
 
-    {"name": "קרן סל S&P 500", "proxy": "SPY", "risk": "רגיל", "sector": "market", "news": "S&P 500 stock market outlook"},
-    {"name": "איילון / קרן ממונפת פי 3 S&P 500", "proxy": "SPY", "risk": "פי 3", "sector": "market", "news": "S&P 500 stock market outlook"},
-    {"name": "קרן ממונפת פי 2 S&P 500", "proxy": "SPY", "risk": "פי 2", "sector": "market", "news": "S&P 500 stock market outlook"},
+    # מזרח / אסיה
+    {"name": "קרן סל קוריאה / מזרח אסיה", "proxy": "EWY", "risk": "רגיל", "theme": "asia"},
+    {"name": "קרן סל טאיוואן / מזרח אסיה", "proxy": "EWT", "risk": "רגיל", "theme": "semis"},
+    {"name": "קרן סל יפן", "proxy": "EWJ", "risk": "רגיל", "theme": "asia"},
+    {"name": "קרן סל הודו", "proxy": "INDA", "risk": "רגיל", "theme": "asia"},
+    {"name": "קרן סל סין", "proxy": "MCHI", "risk": "רגיל", "theme": "china"},
+    {"name": "קרן שווקים מתעוררים", "proxy": "EEM", "risk": "רגיל", "theme": "emerging"},
 
-    {"name": "קרן סל ישראל / ת״א 125", "proxy": "EIS", "risk": "רגיל", "sector": "israel", "news": "Israel stock market economy shekel"},
-    {"name": "קרן ממונפת פי 3 ת״א 125", "proxy": "EIS", "risk": "פי 3", "sector": "israel", "news": "Israel stock market economy shekel"},
+    # שבבים / AI
+    {"name": "קרן סל שבבים / Semiconductors", "proxy": "SOXX", "risk": "רגיל", "theme": "semis"},
+    {"name": "קרן ממונפת פי 2 שבבים", "proxy": "SOXX", "risk": "ממונף פי 2", "theme": "semis"},
+    {"name": "קרן ממונפת פי 3 שבבים", "proxy": "SOXX", "risk": "ממונף פי 3", "theme": "semis"},
 
-    {"name": "קרן סל שווקים מתעוררים", "proxy": "EEM", "risk": "רגיל", "sector": "emerging", "news": "emerging markets stocks outlook"},
-    {"name": "קרן סל טאיוואן / מזרח אסיה", "proxy": "EWT", "risk": "רגיל", "sector": "asia", "news": "Taiwan semiconductors stocks TSMC"},
-    {"name": "קרן סל קוריאה / מזרח אסיה", "proxy": "EWY", "risk": "רגיל", "sector": "asia", "news": "South Korea stocks chips semiconductors"},
-    {"name": "קרן סל יפן", "proxy": "EWJ", "risk": "רגיל", "sector": "asia", "news": "Japan stocks Nikkei yen"},
-    {"name": "קרן סל הודו", "proxy": "INDA", "risk": "רגיל", "sector": "asia", "news": "India stock market outlook"},
+    # נאסדק / טכנולוגיה
+    {"name": "קרן סל נאסד״ק 100", "proxy": "QQQ", "risk": "רגיל", "theme": "tech"},
+    {"name": "קרן ממונפת פי 2 נאסד״ק", "proxy": "QQQ", "risk": "ממונף פי 2", "theme": "tech"},
+    {"name": "קרן ממונפת פי 3 נאסד״ק / איילון אקסטרים", "proxy": "QQQ", "risk": "ממונף פי 3", "theme": "tech"},
 
-    {"name": "קרן סל זהב / קסם זהב", "proxy": "GLD", "risk": "סחורה", "sector": "gold", "news": "gold price outlook interest rates"},
-    {"name": "קרן סל כסף", "proxy": "SLV", "risk": "סחורה", "sector": "metal", "news": "silver price outlook"},
-    {"name": "קרן סל נפט", "proxy": "USO", "risk": "סחורה", "sector": "oil", "news": "oil price OPEC crude outlook"},
-    {"name": "קרן דולר / חשיפה לדולר", "proxy": "UUP", "risk": "מטבע", "sector": "dollar", "news": "US dollar outlook interest rates"},
+    # S&P / שוק כללי
+    {"name": "קרן סל S&P 500", "proxy": "SPY", "risk": "רגיל", "theme": "market"},
+    {"name": "קרן ממונפת פי 2 S&P 500", "proxy": "SPY", "risk": "ממונף פי 2", "theme": "market"},
+    {"name": "קרן ממונפת פי 3 S&P 500 / איילון אקסטרים", "proxy": "SPY", "risk": "ממונף פי 3", "theme": "market"},
+
+    # ישראל
+    {"name": "קרן סל ישראל / ת״א 125", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
+    {"name": "קרן סל ישראל / ת״א 35", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
+    {"name": "קרן ממונפת פי 2 ת״א 125", "proxy": "EIS", "risk": "ממונף פי 2", "theme": "israel"},
+    {"name": "קרן ממונפת פי 3 ת״א 125", "proxy": "EIS", "risk": "ממונף פי 3", "theme": "israel"},
+
+    # סקטורים
+    {"name": "קרן אנרגיה", "proxy": "VDE", "risk": "רגיל", "theme": "energy"},
+    {"name": "קרן פיננסים / בנקים", "proxy": "KBE", "risk": "רגיל", "theme": "banks"},
+    {"name": "קרן דולר / חשיפה לדולר", "proxy": "UUP", "risk": "מטבע", "theme": "dollar"},
 ]
 
-MACRO_SYMBOLS = {
-    "SPY": "שוק אמריקאי",
-    "QQQ": "טכנולוגיה",
-    "EEM": "שווקים מתעוררים",
-    "GLD": "זהב",
-    "USO": "נפט",
-    "UUP": "דולר",
-    "EIS": "ישראל",
-}
-
-POSITIVE_WORDS = [
-    "rally", "surge", "gain", "gains", "rise", "rises", "strong", "record",
-    "bullish", "upgrade", "growth", "optimism", "beat", "higher", "rebound",
-    "positive", "up"
-]
-
-NEGATIVE_WORDS = [
-    "fall", "falls", "drop", "drops", "slump", "selloff", "crash", "fear",
-    "risk", "war", "inflation", "recession", "downgrade", "weak", "lower",
-    "negative", "down", "pressure"
-]
-
-def fetch_prices(symbol):
-    if not API_KEY:
-        return None
-
+def td_prices(symbol):
     url = "https://api.twelvedata.com/time_series"
     params = {
         "symbol": symbol,
@@ -72,41 +58,60 @@ def fetch_prices(symbol):
         "apikey": API_KEY
     }
 
-    try:
-        response = requests.get(url, params=params, timeout=20)
-        data = response.json()
+    data = requests.get(url, params=params, timeout=25).json()
 
-        if "values" not in data:
-            return None
-
-        prices = []
-        for row in data["values"]:
-            try:
-                prices.append(float(row["close"]))
-            except Exception:
-                pass
-
-        prices.reverse()
-        return prices if len(prices) >= 65 else None
-
-    except Exception:
+    if "values" not in data:
         return None
 
-def calc_metrics(prices):
-    last = prices[-1]
+    prices = []
+    for row in data["values"]:
+        try:
+            prices.append(float(row["close"]))
+        except:
+            pass
 
-    week = (last / prices[-5] - 1) * 100
-    month = (last / prices[-21] - 1) * 100
-    q3 = (last / prices[-63] - 1) * 100
-    half = (last / prices[-126] - 1) * 100 if len(prices) >= 126 else q3
-    year = (last / prices[-252] - 1) * 100 if len(prices) >= 252 else half
+    prices.reverse()
+    return prices if len(prices) >= 65 else None
 
-    daily_returns = []
+def news_count(query):
+    try:
+        end = datetime.utcnow()
+        start = end - timedelta(days=14)
+
+        url = "https://api.gdeltproject.org/api/v2/doc/doc"
+        params = {
+            "query": query,
+            "mode": "artlist",
+            "format": "json",
+            "maxrecords": 30,
+            "startdatetime": start.strftime("%Y%m%d%H%M%S"),
+            "enddatetime": end.strftime("%Y%m%d%H%M%S")
+        }
+
+        data = requests.get(url, params=params, timeout=15).json()
+        return len(data.get("articles", []))
+
+    except Exception:
+        return 0
+
+def perf(prices, days):
+    if not prices or len(prices) < days + 1:
+        return 0
+    return (prices[-1] / prices[-days] - 1) * 100
+
+def calc_graph(prices):
+    week = perf(prices, 5)
+    month = perf(prices, 21)
+    q3 = perf(prices, 63)
+    half = perf(prices, 126) if len(prices) >= 126 else q3
+    year = perf(prices, 252) if len(prices) >= 252 else half
+
+    daily = []
     for i in range(1, len(prices)):
         if prices[i - 1] != 0:
-            daily_returns.append((prices[i] / prices[i - 1] - 1) * 100)
+            daily.append((prices[i] / prices[i - 1] - 1) * 100)
 
-    vol = statistics.mean([abs(x) for x in daily_returns[-60:]]) if daily_returns else 0
+    vol = statistics.mean([abs(x) for x in daily[-60:]]) if daily else 0
 
     graph_score = (
         0.10 * week +
@@ -127,238 +132,233 @@ def calc_metrics(prices):
         "graph_score": round(graph_score, 1)
     }
 
-def google_news_score(query):
-    try:
-        url = "https://news.google.com/rss/search?q=" + quote_plus(query) + "&hl=en-US&gl=US&ceid=US:en"
-        r = requests.get(url, timeout=12)
-        root = ET.fromstring(r.content)
+def build_market_context(price_cache):
+    required = ["SPY", "QQQ", "SOXX", "EEM", "EIS", "GLD", "USO", "UUP", "TLT"]
 
-        titles = []
-        for item in root.findall(".//item")[:10]:
-            title = item.find("title")
-            if title is not None and title.text:
-                titles.append(title.text.lower())
+    for sym in required:
+        if sym not in price_cache:
+            price_cache[sym] = td_prices(sym)
+            time.sleep(0.7)
 
-        if not titles:
-            return {
-                "news_score": 0,
-                "news_label": "🟡 אין אקטואליה ברורה",
-                "headline": "לא נמצאו כותרות חדשות"
-            }
+    spy = perf(price_cache.get("SPY"), 21)
+    qqq = perf(price_cache.get("QQQ"), 21)
+    soxx = perf(price_cache.get("SOXX"), 21)
+    eem = perf(price_cache.get("EEM"), 21)
+    eis = perf(price_cache.get("EIS"), 21)
+    gld = perf(price_cache.get("GLD"), 21)
+    uso = perf(price_cache.get("USO"), 21)
+    uup = perf(price_cache.get("UUP"), 21)
+    tlt = perf(price_cache.get("TLT"), 21)
 
-        joined = " ".join(titles)
-        pos = sum(joined.count(w) for w in POSITIVE_WORDS)
-        neg = sum(joined.count(w) for w in NEGATIVE_WORDS)
-
-        score = max(min((pos - neg) * 0.8, 3), -3)
-
-        if score >= 1.5:
-            label = "🟢 אקטואליה חיובית"
-        elif score <= -1.5:
-            label = "🔴 אקטואליה שלילית"
-        else:
-            label = "🟡 אקטואליה ניטרלית"
-
-        return {
-            "news_score": round(score, 1),
-            "news_label": label,
-            "headline": titles[0][:120]
-        }
-
-    except Exception:
-        return {
-            "news_score": 0,
-            "news_label": "🟡 ללא בדיקת חדשות",
-            "headline": "מקור החדשות לא זמין כרגע"
-        }
-
-def trend_sentiment():
-    if TrendReq is None:
-        return {
-            "label": "ללא נתוני חיפוש",
-            "tech_boost": 0,
-            "fear_boost": 0,
-            "inflation_penalty": 0
-        }
-
-    try:
-        pytrend = TrendReq(hl="en-US", tz=0)
-        words = ["recession", "AI", "inflation", "stock market crash"]
-        pytrend.build_payload(words, timeframe="now 7-d")
-        data = pytrend.interest_over_time()
-
-        if data.empty:
-            return {"label": "סנטימנט ניטרלי", "tech_boost": 0, "fear_boost": 0, "inflation_penalty": 0}
-
-        recession = float(data["recession"].mean())
-        ai = float(data["AI"].mean())
-        inflation = float(data["inflation"].mean())
-        crash = float(data["stock market crash"].mean())
-
-        tech_boost = 2 if ai > 50 else 0
-        fear_boost = 2 if recession > 50 or crash > 40 else 0
-        inflation_penalty = -1.5 if inflation > 50 else 0
-
-        if ai > 50 and recession < 50:
-            label = "🚀 דיבור חזק על AI / טכנולוגיה"
-        elif recession > 50 or crash > 40:
-            label = "⚠️ דיבור מוגבר על פחד / מיתון"
-        elif inflation > 50:
-            label = "📉 דיבור מוגבר על אינפלציה"
-        else:
-            label = "🟢 סנטימנט רגיל"
-
-        return {
-            "label": label,
-            "tech_boost": tech_boost,
-            "fear_boost": fear_boost,
-            "inflation_penalty": inflation_penalty
-        }
-
-    except Exception:
-        return {
-            "label": "ללא נתוני סנטימנט זמינים",
-            "tech_boost": 0,
-            "fear_boost": 0,
-            "inflation_penalty": 0
-        }
-
-def macro_context(price_cache):
-    scores = {}
-    for sym in MACRO_SYMBOLS:
-        prices = price_cache.get(sym)
-        if prices:
-            scores[sym] = calc_metrics(prices)
-        else:
-            scores[sym] = None
-
-    qqq = scores.get("QQQ")
-    spy = scores.get("SPY")
-    eem = scores.get("EEM")
-    gold = scores.get("GLD")
-    oil = scores.get("USO")
-    dollar = scores.get("UUP")
-    israel = scores.get("EIS")
-
-    macro_boosts = {
-        "tech": 0,
-        "market": 0,
-        "asia": 0,
-        "emerging": 0,
-        "gold": 0,
-        "oil": 0,
-        "dollar": 0,
-        "israel": 0,
-        "metal": 0
+    news = {
+        "oil": news_count("oil price OR crude oil OR OPEC OR Strait of Hormuz OR sanctions OR tanker"),
+        "war": news_count("war OR missile OR iran OR israel OR gaza OR ukraine OR red sea"),
+        "ai": news_count("artificial intelligence OR AI chips OR Nvidia OR semiconductor OR TSMC"),
+        "rates": news_count("interest rates OR federal reserve OR inflation OR bond yields"),
+        "china": news_count("china economy OR china stimulus OR property crisis china"),
+        "recession": news_count("recession OR slowdown OR market crash OR credit risk")
     }
 
-    notes = []
+    ctx = {
+        "spy": spy,
+        "qqq": qqq,
+        "soxx": soxx,
+        "eem": eem,
+        "eis": eis,
+        "gld": gld,
+        "uso": uso,
+        "uup": uup,
+        "tlt": tlt,
+        "news": news,
+        "summary": []
+    }
 
-    if spy and spy["month"] > 0 and spy["q3"] > 0:
-        macro_boosts["market"] += 2
-        macro_boosts["tech"] += 1
-        notes.append("שוק אמריקאי חיובי")
-
-    if qqq and qqq["month"] > 0 and qqq["q3"] > 0:
-        macro_boosts["tech"] += 2
-        notes.append("טכנולוגיה / נאסד״ק במומנטום חיובי")
-
-    if eem and eem["month"] > 0 and eem["q3"] > 0:
-        macro_boosts["emerging"] += 2
-        macro_boosts["asia"] += 1
-        notes.append("שווקים מתעוררים חיוביים")
-
-    if gold and gold["month"] > 0:
-        macro_boosts["gold"] += 2
-        notes.append("זהב חיובי — ביקוש הגנתי / סחורות")
-
-    if oil and oil["month"] > 0:
-        macro_boosts["oil"] += 2
-        notes.append("נפט חיובי — תומך באנרגיה")
-
-    if dollar and dollar["month"] > 0:
-        macro_boosts["dollar"] += 1
-        notes.append("דולר חיובי")
-
-    if israel and israel["month"] > 0 and israel["q3"] > 0:
-        macro_boosts["israel"] += 2
-        notes.append("ישראל חיובית לפי proxy EIS")
-
-    if not notes:
-        notes.append("אין כיוון מאקרו מובהק")
-
-    if qqq and spy and qqq["q3"] > 0 and spy["q3"] > 0:
-        regime = "🟢 Risk ON — שוק מנייתי חיובי"
-    elif gold and gold["month"] > 0 and (not spy or spy["month"] < 0):
-        regime = "⚠️ מצב הגנתי — זהב חזק מול מניות"
+    if spy > 2 and qqq > 2:
+        ctx["summary"].append("🟢 שוק מניות חיובי")
+    elif spy < -2 or qqq < -2:
+        ctx["summary"].append("🔴 לחץ בשוק המניות")
     else:
-        regime = "🟡 שוק מעורב / לא חד־משמעי"
+        ctx["summary"].append("🟡 שוק מניות ניטרלי")
 
-    return regime, macro_boosts, notes
+    if soxx > 3 and news["ai"] >= 8:
+        ctx["summary"].append("🚀 שבבים / AI חזקים גם בגרף וגם באקטואליה")
 
-def final_score(metrics, fund, macro_boosts, sentiment, news_score):
-    score = metrics["graph_score"]
+    if uso > 5 and news["oil"] >= 8:
+        ctx["summary"].append("⚠️ נפט חזק אך מושפע מאקטואליה — סיכון תיקון אם המתיחות תרד")
 
-    score += macro_boosts.get(fund["sector"], 0)
+    if gld > 3 and news["war"] >= 8:
+        ctx["summary"].append("⚠️ זהב נתמך מחשש גיאופוליטי")
 
-    if fund["sector"] == "tech":
-        score += sentiment["tech_boost"]
+    if uup > 2:
+        ctx["summary"].append("💵 דולר מתחזק — זהירות בשווקים רגישים לריבית")
 
-    if fund["sector"] == "gold":
-        score += sentiment["fear_boost"]
+    if tlt < -2 or news["rates"] >= 10:
+        ctx["summary"].append("📉 סביבת ריבית/אג״ח לוחצת על נכסי סיכון")
 
-    score += sentiment["inflation_penalty"]
+    if eem > 2:
+        ctx["summary"].append("🌏 שווקים מתעוררים / מזרח חיוביים")
 
-    score += news_score
+    if eis < -2 and news["war"] >= 8:
+        ctx["summary"].append("🇮🇱 ישראל תחת קנס סיכון מקומי")
 
-    if fund["risk"] == "פי 3":
-        score = score * 1.20 - 2.0
-    elif fund["risk"] == "פי 2":
-        score = score * 1.10 - 1.0
+    return ctx
 
-    return round(score, 1)
+def forward_adjust(fund, ctx, data):
+    theme = fund["theme"]
+    risk = fund["risk"]
+
+    adj = 0
+    reasons = []
+
+    # שוק כללי
+    if ctx["spy"] > 2 and ctx["qqq"] > 2:
+        if theme in ["market", "tech", "semis", "asia", "emerging"]:
+            adj += 2
+            reasons.append("שוק מניות עולמי תומך")
+    elif ctx["spy"] < -2 or ctx["qqq"] < -2:
+        if theme in ["market", "tech", "semis", "asia", "emerging"]:
+            adj -= 3
+            reasons.append("לחץ בשוק מניות פוגע בהמשך")
+
+    # שבבים / AI
+    if theme == "semis":
+        if ctx["soxx"] > 3:
+            adj += 3
+            reasons.append("שבבים חזקים בגרף")
+        if ctx["news"]["ai"] >= 8:
+            adj += 3
+            reasons.append("דיבור חזק סביב AI/שבבים")
+        if ctx["qqq"] < -2:
+            adj -= 2
+            reasons.append("נאסד״ק חלש פוגע בשבבים")
+
+    # טכנולוגיה / נאסדק
+    if theme == "tech":
+        if ctx["news"]["ai"] >= 8:
+            adj += 2
+            reasons.append("אקטואליית AI תומכת בטכנולוגיה")
+        if ctx["uup"] > 2 or ctx["news"]["rates"] >= 10:
+            adj -= 2
+            reasons.append("דולר/ריבית עלולים ללחוץ על טכנולוגיה")
+
+    # נפט
+    if theme == "oil":
+        if ctx["uso"] > 5 and ctx["news"]["oil"] >= 8:
+            adj -= 8
+            reasons.append("נפט עלה סביב אירוע אקטואלי — סיכון ירידה אם המתיחות תרד")
+        elif ctx["uso"] > 5:
+            adj -= 3
+            reasons.append("נפט לאחר עלייה חדה — סיכון תיקון")
+        elif ctx["uso"] < -3:
+            adj -= 2
+            reasons.append("מגמת נפט שלילית")
+
+    # אנרגיה
+    if theme == "energy":
+        if ctx["uso"] > 3 and ctx["news"]["oil"] < 8:
+            adj += 2
+            reasons.append("אנרגיה נתמכת בנפט ללא עומס אקטואלי חריג")
+        elif ctx["news"]["oil"] >= 8:
+            adj -= 2
+            reasons.append("אנרגיה חשופה לתיקון אם אקטואליית נפט תירגע")
+
+    # זהב / כסף
+    if theme in ["gold", "silver"]:
+        if ctx["news"]["war"] >= 8 or ctx["gld"] > 3:
+            adj += 3
+            reasons.append("חשש גיאופוליטי תומך בסחורות הגנתיות")
+        if ctx["spy"] > 2 and ctx["qqq"] > 2:
+            adj -= 2
+            reasons.append("שוק מניות חיובי מפחית צורך בהגנה")
+        if ctx["uup"] > 2:
+            adj -= 1
+            reasons.append("דולר חזק מקשה על מתכות")
+
+    # מזרח / מתעוררים
+    if theme in ["asia", "emerging"]:
+        if ctx["eem"] > 2:
+            adj += 3
+            reasons.append("מזרח/מתעוררים חזקים")
+        if ctx["uup"] > 2:
+            adj -= 2
+            reasons.append("דולר חזק פוגע בשווקים מתעוררים")
+        if ctx["news"]["recession"] >= 8:
+            adj -= 2
+            reasons.append("חשש האטה עולמית")
+
+    # סין
+    if theme == "china":
+        if ctx["news"]["china"] >= 8:
+            adj -= 2
+            reasons.append("סין עם אקטואליה כלכלית רגישה")
+        if ctx["eem"] > 2:
+            adj += 1
+            reasons.append("מתעוררים חיוביים נותנים תמיכה חלקית")
+
+    # ישראל
+    if theme == "israel":
+        if ctx["eis"] > 2:
+            adj += 2
+            reasons.append("ישראל חיובית לפי proxy")
+        if ctx["news"]["war"] >= 8:
+            adj -= 3
+            reasons.append("סיכון גיאופוליטי מקומי")
+        if ctx["eis"] < -2:
+            adj -= 2
+            reasons.append("ישראל חלשה בגרף")
+
+    # בנקים
+    if theme == "banks":
+        if ctx["news"]["rates"] >= 10:
+            adj += 1
+            reasons.append("ריבית גבוהה יכולה לתמוך במרווחי בנקים")
+        if ctx["news"]["recession"] >= 8:
+            adj -= 3
+            reasons.append("חשש האטה/אשראי פוגע בבנקים")
+
+    # דולר
+    if theme == "dollar":
+        if ctx["uup"] > 2:
+            adj += 2
+            reasons.append("דולר במגמת התחזקות")
+        if ctx["spy"] > 2 and ctx["qqq"] > 2:
+            adj -= 1
+            reasons.append("Risk-on מפחית עדיפות לדולר")
+
+    # ממונפות
+    if "פי 3" in risk:
+        adj -= 3
+        reasons.append("ממונף פי 3 — קנס סיכון")
+        if data["graph_score"] > 8 and ctx["spy"] > 2:
+            adj += 2
+            reasons.append("מגמה חזקה מצדיקה חלקית מינוף")
+    elif "פי 2" in risk:
+        adj -= 1.5
+        reasons.append("ממונף פי 2 — קנס סיכון")
+        if data["graph_score"] > 6:
+            adj += 1
+            reasons.append("מגמה תומכת במינוף מוגבל")
+
+    if not reasons:
+        reasons.append("אין איתות אקטואלי חריג")
+
+    return round(adj, 1), " | ".join(reasons[:4])
 
 def recommendation(score, risk):
-    if risk == "פי 3":
-        if score >= 10:
+    if "פי 3" in risk:
+        if score >= 12:
             return "🟢 קנייה אגרסיבית"
-        if score >= 4:
+        if score >= 5:
             return "🟡 מעקב / סיכון גבוה"
         return "🔴 להימנע"
 
     if score >= 8:
         return "🔥 חזק מאוד"
-    if score >= 5:
+    if score >= 4:
         return "🟢 קנייה"
     if score >= 1:
         return "🟡 מעקב"
     return "🔴 להימנע"
-
-def reason_text(fund, metrics, macro_boosts, sentiment, news):
-    reasons = []
-
-    if metrics["q3"] > 5:
-        reasons.append("מומנטום 3 חודשים חיובי")
-    elif metrics["q3"] < 0:
-        reasons.append("3 חודשים שלילי")
-
-    if metrics["month"] > 2:
-        reasons.append("חודש חיובי")
-    elif metrics["month"] < 0:
-        reasons.append("חודש שלילי")
-
-    if macro_boosts.get(fund["sector"], 0) > 0:
-        reasons.append("מאקרו תומך")
-
-    if news["news_score"] > 0:
-        reasons.append("אקטואליה חיובית")
-    elif news["news_score"] < 0:
-        reasons.append("אקטואליה שלילית")
-
-    if fund["risk"] in ["פי 2", "פי 3"]:
-        reasons.append("ממונף — סיכון גבוה")
-
-    return " | ".join(reasons[:4]) if reasons else "אין יתרון ברור"
 
 @app.route("/")
 def home():
@@ -370,111 +370,81 @@ def home():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>סורק השקעות PRO</title>
 <style>
-body{direction:rtl;font-family:Arial;padding:16px;background:#f6f7fb}
-h2{text-align:center;margin-bottom:8px}
-.card{background:white;padding:12px;border-radius:12px;margin:10px 0;box-shadow:0 1px 5px #ddd}
+body{direction:rtl;font-family:Arial;padding:12px;background:#f6f7fb}
+h2{text-align:center}
 button{width:100%;padding:16px;font-size:22px;border-radius:12px;border:0;background:#1976d2;color:white}
-#loading{text-align:center;font-size:20px;margin:18px}
-.spinner{font-size:40px;animation:flip 1s infinite;display:inline-block}
+#loading{text-align:center;font-size:19px;margin:18px}
+.spinner{font-size:38px;animation:flip 1s infinite}
 @keyframes flip{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
-table{width:100%;border-collapse:collapse;background:white;margin-top:12px;font-size:13px}
-th,td{border:1px solid #ddd;padding:7px;text-align:center}
+.legend{background:white;border-radius:12px;padding:12px;margin:10px 0;font-size:14px;line-height:1.6}
+table{width:100%;border-collapse:collapse;background:white;margin-top:12px;font-size:12px}
+th,td{border:1px solid #ddd;padding:6px;text-align:center;vertical-align:top}
 th{background:#e9eef5}
 .buy{color:green;font-weight:bold}
 .mid{color:#b36b00;font-weight:bold}
 .bad{color:red;font-weight:bold}
-.small{font-size:12px;color:#555}
+.reason{font-size:11px;text-align:right;min-width:140px}
 </style>
 </head>
 <body>
 
 <h2>📊 סורק קרנות/סל PRO</h2>
 
-<div class="card small">
-<b>📘 מקרא ציון:</b><br>
-ציון 10+ → 🔥 חזק מאוד<br>
-ציון 5–10 → 🟢 קנייה / חיובי<br>
-ציון 1–5 → 🟡 מעקב<br>
-ציון מתחת 1 → 🔴 להימנע<br><br>
-
+<div class="legend">
+<b>מקרא ציון סופי:</b><br>
+🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-65% ניתוח גרפי: שבוע, חודש, 3 חודשים, חצי שנה, שנה ותנודתיות.<br>
-20% מאקרו: מצב שוק עולמי, דולר, זהב, נפט, ישראל, שווקים מתעוררים.<br>
-15% אקטואליה: בדיקת כותרות חדשות רק למובילים לפי הגרף, כדי לוודא שיש/אין רוח גבית אקטואלית.<br><br>
-
-<b>אקטואליה:</b><br>
-🟢 אקטואליה חיובית → הכותרות תומכות בתחום.<br>
-🟡 ניטרלית → אין איתות ברור.<br>
-🔴 שלילית → הכותרות פועלות נגד התחום.<br><br>
-
-<b>שים לב:</b> ממונפות פי 2/3 מקבלות קנס סיכון. גם המלצת קנייה בהן היא אגרסיבית בלבד.
+גרף + מאקרו עולמי + אקטואליה + הסתכלות קדימה + קנס סיכון למינוף/אירוע זמני.
 </div>
 
 <button onclick="run()">🔵 סריקה</button>
 
 <div id="loading"></div>
-<div id="market" class="card"></div>
+<div id="market"></div>
 <table id="t"></table>
-<div id="errors" class="small"></div>
 
 <script>
-let timer = null;
-let seconds = 0;
+let timer=null, seconds=0;
 
 function startClock(){
-    seconds = 0;
-    const loading = document.getElementById("loading");
-    timer = setInterval(()=>{
+    seconds=0;
+    timer=setInterval(()=>{
         seconds++;
-        loading.innerHTML = `
-            <div class="spinner">⏳</div>
-            <div>מבצע ניתוח... ${seconds} שניות</div>
-            <div style="font-size:14px;color:#555">בודק גרפים, מאקרו ואקטואליה למובילים</div>
-        `;
+        document.getElementById("loading").innerHTML =
+        `<div class="spinner">⏳</div><div>מנתח גרף + אקטואליה... ${seconds} שניות</div><div style="font-size:13px;color:#555">יכול לקחת עד כמה דקות</div>`;
     },1000);
 }
 
 function stopClock(msg){
     clearInterval(timer);
-    document.getElementById("loading").innerText = msg;
+    document.getElementById("loading").innerText=msg;
 }
 
 async function run(){
-    document.getElementById("t").innerHTML = "";
-    document.getElementById("errors").innerHTML = "";
-    document.getElementById("market").innerHTML = "";
+    document.getElementById("t").innerHTML="";
+    document.getElementById("market").innerHTML="";
     startClock();
 
     try{
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000);
+        const timeoutId = setTimeout(() => controller.abort(), 240000);
 
         let r = await fetch('/scan', {signal: controller.signal});
         clearTimeout(timeoutId);
 
         let d = await r.json();
 
-        if(!d.results || d.results.length === 0){
-            stopClock("⚠️ לא התקבלו נתונים. נסה שוב מאוחר יותר.");
-            return;
-        }
-
         document.getElementById("market").innerHTML =
-            "<b>🌍 מצב שוק:</b><br>" +
-            d.regime + "<br>" +
-            "<b>🧠 דיבור שוק:</b><br>" +
-            d.sentiment + "<br>" +
-            "<b>📌 הערות:</b><br>" +
-            d.notes.join("<br>");
+            `<div class="legend"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>`;
 
-        let html = "<tr><th>#</th><th>שם לרכישה</th><th>בסיס ניתוח</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>ציון</th><th>אקטואליה</th><th>המלצה</th><th>למה</th></tr>";
+        let html="<tr><th>#</th><th>שם לרכישה</th><th>בסיס</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>סיבה</th></tr>";
 
         d.results.forEach((x,i)=>{
-            let cls = "bad";
-            if(x.reco.includes("קנייה") || x.reco.includes("חזק")) cls = "buy";
-            else if(x.reco.includes("מעקב")) cls = "mid";
+            let cls="bad";
+            if(x.reco.includes("קנייה") || x.reco.includes("חזק")) cls="buy";
+            else if(x.reco.includes("מעקב")) cls="mid";
 
-            html += `<tr>
+            html+=`<tr>
                 <td>${i+1}</td>
                 <td>${x.name}</td>
                 <td>${x.proxy}</td>
@@ -482,19 +452,16 @@ async function run(){
                 <td>${x.month}%</td>
                 <td>${x.q3}%</td>
                 <td>${x.half}%</td>
-                <td>${x.score}</td>
-                <td>${x.news_label}<br><span class="small">${x.headline}</span></td>
+                <td>${x.graph_score}</td>
+                <td>${x.forward_adj}</td>
+                <td>${x.final_score}</td>
                 <td class="${cls}">${x.reco}</td>
-                <td>${x.reason}</td>
+                <td class="reason">${x.reason}</td>
             </tr>`;
         });
 
-        document.getElementById("t").innerHTML = html;
+        document.getElementById("t").innerHTML=html;
         stopClock("✅ הסריקה הסתיימה");
-
-        if(d.errors && d.errors.length > 0){
-            document.getElementById("errors").innerHTML = "לא נטענו: " + d.errors.join(", ");
-        }
 
     }catch(e){
         stopClock("⚠️ הסריקה נתקעה או חרגה מזמן. נסה שוב.");
@@ -508,83 +475,49 @@ async function run(){
 
 @app.route("/scan")
 def scan():
+    price_cache = {}
     results = []
     errors = []
-    price_cache = {}
 
-    all_symbols = set([f["proxy"] for f in FUNDS] + list(MACRO_SYMBOLS.keys()))
-
-    for sym in all_symbols:
-        prices = fetch_prices(sym)
-        price_cache[sym] = prices
-        time.sleep(1.1)
-
-    regime, macro_boosts, notes = macro_context(price_cache)
-    sent = trend_sentiment()
-
-    preliminary = []
+    ctx = build_market_context(price_cache)
 
     for fund in FUNDS:
         try:
-            prices = price_cache.get(fund["proxy"])
+            proxy = fund["proxy"]
+
+            if proxy not in price_cache:
+                price_cache[proxy] = td_prices(proxy)
+                time.sleep(0.7)
+
+            prices = price_cache.get(proxy)
             if not prices:
                 errors.append(fund["name"])
                 continue
 
-            metrics = calc_metrics(prices)
-            graph_only_score = metrics["graph_score"]
+            data = calc_graph(prices)
+            adj, reason = forward_adjust(fund, ctx, data)
+            final_score = round(data["graph_score"] + adj, 1)
 
-            preliminary.append({
-                "fund": fund,
-                "metrics": metrics,
-                "graph_only_score": graph_only_score
+            results.append({
+                "name": fund["name"],
+                "proxy": proxy,
+                "risk": fund["risk"],
+                **data,
+                "forward_adj": adj,
+                "final_score": final_score,
+                "reco": recommendation(final_score, fund["risk"]),
+                "reason": reason
             })
 
         except Exception:
             errors.append(fund["name"])
 
-    preliminary = sorted(preliminary, key=lambda x: x["graph_only_score"], reverse=True)
-
-    news_map = {}
-    for item in preliminary[:8]:
-        fund = item["fund"]
-        news_map[fund["name"]] = google_news_score(fund["news"])
-        time.sleep(1.0)
-
-    for item in preliminary:
-        fund = item["fund"]
-        metrics = item["metrics"]
-        news = news_map.get(fund["name"], {
-            "news_score": 0,
-            "news_label": "🟡 לא נבדק",
-            "headline": "אקטואליה נבדקת רק למובילים לפי הגרף"
-        })
-
-        score = final_score(metrics, fund, macro_boosts, sent, news["news_score"])
-        reco = recommendation(score, fund["risk"])
-
-        results.append({
-            "name": fund["name"],
-            "proxy": fund["proxy"],
-            "risk": fund["risk"],
-            "month": metrics["month"],
-            "q3": metrics["q3"],
-            "half": metrics["half"],
-            "score": score,
-            "news_label": news["news_label"],
-            "headline": news["headline"],
-            "reco": reco,
-            "reason": reason_text(fund, metrics, macro_boosts, sent, news)
-        })
-
-    results = sorted(results, key=lambda x: x["score"], reverse=True)[:10]
+    results = sorted(results, key=lambda x: x["final_score"], reverse=True)[:10]
 
     return jsonify({
+        "market": ctx["summary"],
         "results": results,
-        "errors": errors,
-        "regime": regime,
-        "sentiment": sent["label"],
-        "notes": notes
+        "errors": errors
     })
 
 if __name__ == "__main__":
