@@ -3,11 +3,13 @@ import requests
 import os
 import time
 import statistics
+import subprocess
+subprocess.run(["pip", "install", "feedparser", "--break-system-packages", "-q"], check=False)
 import feedparser
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-app = Flask(__name__)
+app = Flask(_name_)
 API_KEY = os.getenv("API_KEY")  # TwelveData - אם יש
 
 # ─────────────────────────────────────────────
@@ -382,7 +384,7 @@ function startClock(){
     timer=setInterval(()=>{
         seconds++;
         document.getElementById("loading").innerHTML=
-        `<div class="spinner">⚙️</div><div>מנתח גרף + אקטואליה... ${seconds} שניות</div>`;
+        <div class="spinner">⚙️</div><div>מנתח גרף + אקטואליה... ${seconds} שניות</div>;
     },1000);
 }
 function stopClock(msg){clearInterval(timer);document.getElementById("loading").innerText=msg;}
@@ -396,7 +398,7 @@ async function run(){
         const d=await r.json();
 
         document.getElementById("market").innerHTML=
-            `<div class="market-box"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>`;
+            <div class="market-box"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>;
 
         let html=`<tr>
             <th>#</th><th>שם קרן</th><th>מס׳ נייר</th><th>בסיס</th><th>סיכון</th>
@@ -414,7 +416,7 @@ async function run(){
             if(x.sentiment.includes("חיובי")) sentCls="sentiment-pos";
             if(x.sentiment.includes("שלילי")) sentCls="sentiment-neg";
 
-            let newsHtml=x.top_news.map(n=>`<div>• ${n.title.substring(0,60)}...</div>`).join("");
+            let newsHtml=x.top_news.map(n=><div>• ${n.title.substring(0,60)}...</div>).join("");
 
             html+=`<tr>
                 <td>${i+1}</td>
@@ -497,5 +499,5 @@ def scan():
     return jsonify({"market": ctx["summary"], "results": results})
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10001)
+if _name_ == "_main_":
+    app.run(host="0.0.0.0", port=10001
