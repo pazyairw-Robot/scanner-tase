@@ -9,48 +9,48 @@ import feedparser
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-app = Flask(_name_)
-API_KEY = os.getenv("API_KEY")  # TwelveData - אם יש
+app = Flask(__name__)
+API_KEY = os.getenv("API_KEY") # TwelveData - אם יש
 
 # ─────────────────────────────────────────────
 # רשימת קרנות עם מספרי ניירות ערך אמיתיים
 # ─────────────────────────────────────────────
 FUNDS = [
     # ── ישראל ──
-    {"name": "תכלית סל ת\"א 35",           "sec_no": "1082401", "proxy": "EIS",  "risk": "רגיל",       "theme": "israel",   "news_q": "תל אביב 35 בורסה ישראל"},
-    {"name": "קסם סל ת\"א 125",             "sec_no": "1146364", "proxy": "EIS",  "risk": "רגיל",       "theme": "israel",   "news_q": "תל אביב 125 בורסה ישראל"},
+    {"name": "תכלית סל ת\"א 35", "sec_no": "1082401", "proxy": "EIS", "risk": "רגיל", "theme": "israel", "news_q": "תל אביב 35 בורסה ישראל"},
+    {"name": "קסם סל ת\"א 125", "sec_no": "1146364", "proxy": "EIS", "risk": "רגיל", "theme": "israel", "news_q": "תל אביב 125 בורסה ישראל"},
 
     # ── S&P 500 ──
-    {"name": "תכלית סל S&P 500",           "sec_no": "1159235", "proxy": "SPY",  "risk": "רגיל",       "theme": "market",   "news_q": "S&P 500 stock market"},
-    {"name": "קסם סל S&P 500",             "sec_no": "1146356", "proxy": "SPY",  "risk": "רגיל",       "theme": "market",   "news_q": "S&P 500 stock market"},
-    {"name": "איילון אקסטרים S&P 500 פי 3","sec_no": "5117759", "proxy": "SPY",  "risk": "ממונף פי 3", "theme": "market",   "news_q": "S&P 500 leveraged ETF"},
+    {"name": "תכלית סל S&P 500", "sec_no": "1159235", "proxy": "SPY", "risk": "רגיל", "theme": "market", "news_q": "S&P 500 stock market"},
+    {"name": "קסם סל S&P 500", "sec_no": "1146356", "proxy": "SPY", "risk": "רגיל", "theme": "market", "news_q": "S&P 500 stock market"},
+    {"name": "איילון אקסטרים S&P 500 פי 3","sec_no": "5117759", "proxy": "SPY", "risk": "ממונף פי 3", "theme": "market", "news_q": "S&P 500 leveraged ETF"},
 
     # ── Nasdaq ──
-    {"name": "תכלית סל נאסד\"ק 100",        "sec_no": "1159243", "proxy": "QQQ",  "risk": "רגיל",       "theme": "tech",     "news_q": "Nasdaq 100 technology stocks"},
-    {"name": "איילון אקסטרים נאסד\"ק פי 3", "sec_no": "5128947", "proxy": "QQQ",  "risk": "ממונף פי 3", "theme": "tech",     "news_q": "Nasdaq 100 tech rally"},
+    {"name": "תכלית סל נאסד\"ק 100", "sec_no": "1159243", "proxy": "QQQ", "risk": "רגיל", "theme": "tech", "news_q": "Nasdaq 100 technology stocks"},
+    {"name": "איילון אקסטרים נאסד\"ק פי 3", "sec_no": "5128947", "proxy": "QQQ", "risk": "ממונף פי 3", "theme": "tech", "news_q": "Nasdaq 100 tech rally"},
 
     # ── שבבים / AI ──
-    {"name": "תכלית סל שבבים גלובלי",      "sec_no": "1159250", "proxy": "SOXX", "risk": "רגיל",       "theme": "semis",    "news_q": "semiconductor AI chips Nvidia TSMC"},
+    {"name": "תכלית סל שבבים גלובלי", "sec_no": "1159250", "proxy": "SOXX", "risk": "רגיל", "theme": "semis", "news_q": "semiconductor AI chips Nvidia TSMC"},
 
     # ── זהב ──
-    {"name": "קסם LBMA Gold ETF",          "sec_no": "1146422", "proxy": "GLD",  "risk": "סחורה",      "theme": "gold",     "news_q": "gold price safe haven inflation"},
+    {"name": "קסם LBMA Gold ETF", "sec_no": "1146422", "proxy": "GLD", "risk": "סחורה", "theme": "gold", "news_q": "gold price safe haven inflation"},
 
     # ── כסף ──
-    {"name": "תכלית סל כסף",               "sec_no": "1159268", "proxy": "SLV",  "risk": "סחורה",      "theme": "silver",   "news_q": "silver price commodity"},
+    {"name": "תכלית סל כסף", "sec_no": "1159268", "proxy": "SLV", "risk": "סחורה", "theme": "silver", "news_q": "silver price commodity"},
 
     # ── נפט / אנרגיה ──
-    {"name": "תכלית סל נפט",               "sec_no": "1159276", "proxy": "USO",  "risk": "סחורה",      "theme": "oil",      "news_q": "oil price OPEC crude"},
-    {"name": "תכלית סל אנרגיה",            "sec_no": "1159284", "proxy": "VDE",  "risk": "רגיל",       "theme": "energy",   "news_q": "energy sector stocks oil gas"},
+    {"name": "תכלית סל נפט", "sec_no": "1159276", "proxy": "USO", "risk": "סחורה", "theme": "oil", "news_q": "oil price OPEC crude"},
+    {"name": "תכלית סל אנרגיה", "sec_no": "1159284", "proxy": "VDE", "risk": "רגיל", "theme": "energy", "news_q": "energy sector stocks oil gas"},
 
     # ── שווקים מתעוררים / אסיה ──
-    {"name": "תכלית סל שווקים מתעוררים",   "sec_no": "1159292", "proxy": "EEM",  "risk": "רגיל",       "theme": "emerging", "news_q": "emerging markets ETF"},
-    {"name": "תכלית סל יפן",               "sec_no": "1159300", "proxy": "EWJ",  "risk": "רגיל",       "theme": "asia",     "news_q": "Japan economy Nikkei stocks"},
-    {"name": "תכלית סל הודו",              "sec_no": "1159318", "proxy": "INDA", "risk": "רגיל",       "theme": "asia",     "news_q": "India economy Sensex stocks"},
-    {"name": "תכלית סל סין",               "sec_no": "1159326", "proxy": "MCHI", "risk": "רגיל",       "theme": "china",    "news_q": "China economy stocks stimulus"},
+    {"name": "תכלית סל שווקים מתעוררים", "sec_no": "1159292", "proxy": "EEM", "risk": "רגיל", "theme": "emerging", "news_q": "emerging markets ETF"},
+    {"name": "תכלית סל יפן", "sec_no": "1159300", "proxy": "EWJ", "risk": "רגיל", "theme": "asia", "news_q": "Japan economy Nikkei stocks"},
+    {"name": "תכלית סל הודו", "sec_no": "1159318", "proxy": "INDA", "risk": "רגיל", "theme": "asia", "news_q": "India economy Sensex stocks"},
+    {"name": "תכלית סל סין", "sec_no": "1159326", "proxy": "MCHI", "risk": "רגיל", "theme": "china", "news_q": "China economy stocks stimulus"},
 
     # ── דולר / בנקים ──
-    {"name": "תכלית סל דולר",              "sec_no": "1159334", "proxy": "UUP",  "risk": "מטבע",       "theme": "dollar",   "news_q": "US dollar strength Fed interest rates"},
-    {"name": "תכלית סל בנקים",             "sec_no": "1159342", "proxy": "KBE",  "risk": "רגיל",       "theme": "banks",    "news_q": "bank stocks financial sector interest rates"},
+    {"name": "תכלית סל דולר", "sec_no": "1159334", "proxy": "UUP", "risk": "מטבע", "theme": "dollar", "news_q": "US dollar strength Fed interest rates"},
+    {"name": "תכלית סל בנקים", "sec_no": "1159342", "proxy": "KBE", "risk": "רגיל", "theme": "banks", "news_q": "bank stocks financial sector interest rates"},
 ]
 
 
@@ -145,11 +145,11 @@ def perf(prices, days):
 
 
 def calc_graph(prices):
-    week  = perf(prices, 5)
+    week = perf(prices, 5)
     month = perf(prices, 21)
-    q3    = perf(prices, 63)
-    half  = perf(prices, 126) if len(prices) >= 126 else q3
-    year  = perf(prices, 252) if len(prices) >= 252 else half
+    q3 = perf(prices, 63)
+    half = perf(prices, 126) if len(prices) >= 126 else q3
+    year = perf(prices, 252) if len(prices) >= 252 else half
 
     daily = [(prices[i] / prices[i-1] - 1) * 100
              for i in range(1, len(prices)) if prices[i-1] != 0]
@@ -177,24 +177,24 @@ def build_market_context(price_cache):
             if sym not in price_cache:
                 price_cache[sym] = prices
 
-    spy  = perf(price_cache.get("SPY"),  21)
-    qqq  = perf(price_cache.get("QQQ"),  21)
+    spy = perf(price_cache.get("SPY"), 21)
+    qqq = perf(price_cache.get("QQQ"), 21)
     soxx = perf(price_cache.get("SOXX"), 21)
-    eem  = perf(price_cache.get("EEM"),  21)
-    eis  = perf(price_cache.get("EIS"),  21)
-    gld  = perf(price_cache.get("GLD"),  21)
-    uso  = perf(price_cache.get("USO"),  21)
-    uup  = perf(price_cache.get("UUP"),  21)
-    tlt  = perf(price_cache.get("TLT"),  21)
+    eem = perf(price_cache.get("EEM"), 21)
+    eis = perf(price_cache.get("EIS"), 21)
+    gld = perf(price_cache.get("GLD"), 21)
+    uso = perf(price_cache.get("USO"), 21)
+    uup = perf(price_cache.get("UUP"), 21)
+    tlt = perf(price_cache.get("TLT"), 21)
 
     # אקטואליה מאקרו במקביל
     macro_queries = {
-        "market":    "stock market S&P 500 economy",
-        "ai":        "artificial intelligence AI chips Nvidia semiconductor",
-        "oil":       "oil price OPEC crude energy",
-        "war":       "geopolitical war conflict Israel Iran Ukraine",
-        "rates":     "Federal Reserve interest rates inflation bonds",
-        "china":     "China economy stimulus property",
+        "market": "stock market S&P 500 economy",
+        "ai": "artificial intelligence AI chips Nvidia semiconductor",
+        "oil": "oil price OPEC crude energy",
+        "war": "geopolitical war conflict Israel Iran Ukraine",
+        "rates": "Federal Reserve interest rates inflation bonds",
+        "china": "China economy stimulus property",
         "recession": "recession slowdown credit risk market crash",
     }
 
@@ -244,7 +244,7 @@ def build_market_context(price_cache):
 # ─────────────────────────────────────────────
 def forward_adjust(fund, ctx, data, fund_news):
     theme = fund["theme"]
-    risk  = fund["risk"]
+    risk = fund["risk"]
     sentiment_label, sentiment_score = news_sentiment(fund_news)
     ms = ctx["macro_sentiment"]
 
@@ -315,11 +315,11 @@ def forward_adjust(fund, ctx, data, fund_news):
 def recommendation(score, risk):
     if "פי 3" in risk:
         if score >= 12: return "🟢 קנייה אגרסיבית"
-        if score >= 5:  return "🟡 מעקב / סיכון גבוה"
+        if score >= 5: return "🟡 מעקב / סיכון גבוה"
         return "🔴 להימנע"
-    if score >= 8:  return "🔥 חזק מאוד"
-    if score >= 4:  return "🟢 קנייה"
-    if score >= 1:  return "🟡 מעקב"
+    if score >= 8: return "🔥 חזק מאוד"
+    if score >= 4: return "🟢 קנייה"
+    if score >= 1: return "🟡 מעקב"
     return "🔴 להימנע"
 
 
@@ -384,7 +384,7 @@ function startClock(){
     timer=setInterval(()=>{
         seconds++;
         document.getElementById("loading").innerHTML=
-        <div class="spinner">⚙️</div><div>מנתח גרף + אקטואליה... ${seconds} שניות</div>;
+        `<div class="spinner">⚙️</div><div>מנתח גרף + אקטואליה... ${seconds} שניות</div>`;
     },1000);
 }
 function stopClock(msg){clearInterval(timer);document.getElementById("loading").innerText=msg;}
@@ -398,7 +398,7 @@ async function run(){
         const d=await r.json();
 
         document.getElementById("market").innerHTML=
-            <div class="market-box"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>;
+            `<div class="market-box"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>`;
 
         let html=`<tr>
             <th>#</th><th>שם קרן</th><th>מס׳ נייר</th><th>בסיס</th><th>סיכון</th>
@@ -416,7 +416,7 @@ async function run(){
             if(x.sentiment.includes("חיובי")) sentCls="sentiment-pos";
             if(x.sentiment.includes("שלילי")) sentCls="sentiment-neg";
 
-            let newsHtml=x.top_news.map(n=><div>• ${n.title.substring(0,60)}...</div>).join("");
+            let newsHtml=x.top_news.map(n=>`<div>• ${n.title.substring(0,60)}...</div>`).join("");
 
             html+=`<tr>
                 <td>${i+1}</td>
@@ -471,17 +471,17 @@ def scan():
             final_score = round(data["graph_score"] + adj, 1)
 
             return {
-                "name":        fund["name"],
-                "sec_no":      fund["sec_no"],
-                "proxy":       proxy,
-                "risk":        fund["risk"],
+                "name": fund["name"],
+                "sec_no": fund["sec_no"],
+                "proxy": proxy,
+                "risk": fund["risk"],
                 **data,
                 "forward_adj": adj,
                 "final_score": final_score,
-                "reco":        recommendation(final_score, fund["risk"]),
-                "reason":      reason,
-                "sentiment":   sentiment,
-                "top_news":    top_news
+                "reco": recommendation(final_score, fund["risk"]),
+                "reason": reason,
+                "sentiment": sentiment,
+                "top_news": top_news
             }
         except Exception:
             return None
@@ -499,5 +499,5 @@ def scan():
     return jsonify({"market": ctx["summary"], "results": results})
 
 
-if _name_ == "_main_":
-    app.run(host="0.0.0.0", port=10001
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10001)
