@@ -1,194 +1,188 @@
-from flask import Flask, render_template_string
-import requests
-import statistics
+from flask import Flask, render_template_string, request
+import requests, os, statistics
 from datetime import datetime
 
-import os
-API_KEY = os.getenv("TWELVE_API_KEY")
 app = Flask(__name__)
 
-# סימבולים תקינים בלבד
+API_KEY = os.environ.get("TWELVE_API_KEY", "").strip()
+
 FUNDS = [
-    {"name": "שבבים", "symbol": "SOXX", "sector": "semiconductors"},
-    {"name": "נאסד״ק 100", "symbol": "QQQ", "sector": "tech"},
-    {"name": "S&P 500", "symbol": "SPY", "sector": "sp500"},
-    {"name": "מתכות", "symbol": "XME", "sector": "metals"},
-    {"name": "זהב", "symbol": "GLD", "sector": "gold"},
-    {"name": "אנרגיה", "symbol": "XLE", "sector": "energy"},
-    {"name": "פיננסים", "symbol": "XLF", "sector": "financials"},
+    {"name": "שבבים ארה״ב", "symbol": "SOXX", "sector": "AI תומך בשבבים, אך אחרי ריצה חזקה יש סיכון מימושים."},
+    {"name": "נאסד״ק 100", "symbol": "QQQ", "sector": "טכנולוגיה רגישה לריבית אך נהנית ממומנטום חזק."},
+    {"name": "S&P 500", "symbol": "SPY", "sector": "מדד רחב, תלוי ריבית ואינפלציה בארה״ב."},
+    {"name": "מתכות וכרייה", "symbol": "XME", "sector": "תלוי סין, ביקוש תעשייתי ודולר."},
+    {"name": "זהב", "symbol": "GLD", "sector": "מושפע מדולר, תשואות אג״ח ופחד בשוק."},
+    {"name": "אנרגיה / נפט", "symbol": "XLE", "sector": "תלוי מחירי נפט, מלאים וביקוש עולמי."},
+    {"name": "פיננסים ארה״ב", "symbol": "XLF", "sector": "ריבית גבוהה תומכת, האטה כלכלית פוגעת."},
+    {"name": "קוריאה", "symbol": "EWY", "sector": "מושפעת משבבים, יצוא וסחר עולמי."},
+    {"name": "סין", "symbol": "FXI", "sector": "תלויה בתמריצים, נדל״ן ונתוני מאקרו."},
+    {"name": "אירופה", "symbol": "VGK", "sector": "תלויה בצמיחה, ריבית ואירו/דולר."},
 ]
 
-# ======================
-# שליפת נתונים (עם הגנה!)
-# ======================
-def get_data(symbol):
+def get_closes(symbol):
+    if not API_KEY:
+        return [], "חסר TWELVE_API_KEY ב־Render Environment"
+
     url = "https://api.twelvedata.com/time_series"
     params = {
         "symbol": symbol,
         "interval": "1day",
-        "outputsize": 60,
-        "apikey": API_KEY
+        "outputsize": 90,
+        "apikey": API_KEY,
     }
 
     try:
-        r = requests.get(url, params=params, timeout=10).json()
+        r = requests.get(url, params=params, timeout=15)
+        data = r.json()
 
-        if "values" not in r:
-            print("API ERROR:", r)
-            return []
+        if "values" not in data:
+            return [], str(data)
 
-        values = list(reversed(r["values"]))
-        return [float(v["close"]) for v in values]
+        values = list(reversed(data["values"]))
+        closes = [float(v["close"]) for v in values]
+        return closes, ""
 
     except Exception as e:
-        print("REQUEST FAILED:", e)
-        return []
+        return [], str(e)
 
-# ======================
-# חישובים
-# ======================
-def pct_change(data, days):
-    if len(data) <= days:
+def pct(closes, days):
+    if len(closes) <= days:
         return 0
-    return (data[-1] - data[-days-1]) / data[-days-1] * 100
+    return (closes[-1] - closes[-days - 1]) / closes[-days - 1] * 100
 
-def volatility(data):
-    if len(data) < 20:
+def vol(closes):
+    if len(closes) < 22:
         return 0
     returns = []
-    for i in range(1, 20):
-        r = (data[-i] - data[-i-1]) / data[-i-1] * 100
-        returns.append(r)
-    return statistics.stdev(returns)
+    recent = closes[-20:]
+    for i in range(1, len(recent)):
+        returns.append((recent[i] - recent[i-1]) / recent[i-1] * 100)
+    return statistics.stdev(returns) if len(returns) > 1 else 0
 
-# ======================
-# דולר
-# ======================
-def usd_ils():
-    data = get_data("USD/ILS")
-    if len(data) < 5:
-        return 0
-    return pct_change(data, 3)
+def make_decision(w, m, score):
+    if w > 0 and m > 0 and score >= 65:
+        return "חיובי — החזקה / קנייה זהירה"
+    if w < 0 and m > 0:
+        return "נחלש — מעקב, לא לרדוף"
+    if w < 0 and m < 0:
+        return "שלילי — לא לקנות כרגע"
+    return "ניטרלי — מעקב בלבד"
 
-# ======================
-# אקטואליה קצרה (לפי סקטור)
-# ======================
-def forward_text(sector, w, m, usd):
-
-    if sector == "semiconductors":
-        base = "AI תומך בשבבים"
-        risk = "אך יש סיכון מימושים"
-    elif sector == "metals":
-        base = "מתכות תלויות בסין ובתעשייה"
-        risk = "לכן תנודתיות גבוהה"
-    elif sector == "energy":
-        base = "נפט משפיע על הסקטור"
-        risk = "רגיש לירידות מחיר"
-    elif sector == "financials":
-        base = "ריבית תומכת בפיננסים"
-        risk = "אך האטה פוגעת"
-    else:
-        base = "תלוי שוק כללי"
-        risk = "תנודתי"
-
-    if usd > 0.5:
-        fx = "דולר תומך"
-    elif usd < -0.5:
-        fx = "דולר פוגע"
-    else:
-        fx = "מט״ח ניטרלי"
-
-    if w > 0 and m > 0:
-        direction = "חיובי"
-        decision = "להחזיק"
-    elif w < 0 and m > 0:
-        direction = "נחלש"
-        decision = "מעקב"
-    else:
-        direction = "שלילי"
-        decision = "להיזהר"
-
-    text = f"{base}, {risk}. {fx}. מגמה {direction} → {decision}"
-
-    return direction, text, decision
-
-# ======================
-# סריקה
-# ======================
 def scan():
-    results = []
-    usd = usd_ils()
+    rows = []
 
     for f in FUNDS:
-        data = get_data(f["symbol"])
+        closes, error = get_closes(f["symbol"])
 
-        if len(data) < 20:
+        if error:
+            rows.append({
+                "name": f["name"],
+                "symbol": f["symbol"],
+                "week": "שגיאה",
+                "month": "שגיאה",
+                "quarter": "שגיאה",
+                "score": 0,
+                "direction": "אין נתונים",
+                "forward": error,
+                "decision": "בדוק API KEY / Twelve Data",
+                "is_error": True,
+            })
             continue
 
-        w = pct_change(data, 5)
-        m = pct_change(data, 22)
-        v = volatility(data)
+        w = pct(closes, 5)
+        m = pct(closes, 22)
+        q = pct(closes, 66)
+        v = vol(closes)
 
-        score = 50 + w*2 + m*1.5 - v*1.5
+        score = 50 + w * 2 + m * 1.4 + q * 0.5 - v * 1.2
+        score = round(max(0, min(100, score)), 1)
 
-        direction, text, decision = forward_text(f["sector"], w, m, usd)
+        if w > 0 and m > 0:
+            direction = "חיובי"
+        elif w < 0 and m > 0:
+            direction = "נחלש"
+        elif w < 0 and m < 0:
+            direction = "שלילי"
+        else:
+            direction = "מעורב"
 
-        results.append({
+        decision = make_decision(w, m, score)
+
+        forward = f"{f['sector']} שבוע: {w:.2f}%, חודש: {m:.2f}%. לכן הכיוון כרגע: {direction}."
+
+        rows.append({
             "name": f["name"],
             "symbol": f["symbol"],
-            "weekly": round(w,2),
-            "monthly": round(m,2),
-            "vol": round(v,2),
-            "score": round(score,1),
+            "week": f"{w:.2f}%",
+            "month": f"{m:.2f}%",
+            "quarter": f"{q:.2f}%",
+            "score": score,
             "direction": direction,
-            "text": text,
-            "decision": decision
+            "forward": forward,
+            "decision": decision,
+            "is_error": False,
         })
 
-    results.sort(key=lambda x: x["score"], reverse=True)
-    return results
+    rows.sort(key=lambda x: x["score"], reverse=True)
+    return rows
 
-# ======================
-# UI
-# ======================
 HTML = """
-<html dir="rtl">
+<!doctype html>
+<html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
+<title>סורק קרנות וסל</title>
 <style>
-body {font-family: Arial; padding:20px;}
-table {width:100%; border-collapse:collapse;}
-th,td {padding:10px; border-bottom:1px solid #ccc;}
-th {background:black; color:white;}
+body {font-family: Arial; background:#f3f4f6; margin:0; padding:30px;}
+h1 {margin:0 0 8px 0;}
+.top {display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+button, .btn {background:#2563eb; color:white; padding:12px 20px; border:0; border-radius:8px; font-size:16px; cursor:pointer; text-decoration:none;}
+table {width:100%; border-collapse:collapse; background:white; box-shadow:0 4px 14px #0002;}
+th {background:#111827; color:white; padding:12px;}
+td {padding:12px; border-bottom:1px solid #ddd; vertical-align:top;}
+.err {color:#b91c1c; direction:ltr; text-align:left; font-size:12px;}
+.score {font-weight:bold; font-size:18px;}
+.small {color:#6b7280;}
 </style>
 </head>
 <body>
 
-<h2>סורק קרנות</h2>
+<div class="top">
+  <div>
+    <h1>סורק קרנות וסל — TOP 10</h1>
+    <div class="small">רענון אחרון: {{ now }}</div>
+  </div>
+  <a class="btn" href="/?run={{ stamp }}">סריקה חדשה</a>
+</div>
 
 <table>
 <tr>
+<th>דירוג</th>
 <th>קרן</th>
+<th>סימבול</th>
 <th>שבוע</th>
 <th>חודש</th>
+<th>3 חודשים</th>
 <th>ציון</th>
 <th>כיוון</th>
 <th>אקטואליה קדימה</th>
 <th>החלטה</th>
 </tr>
 
-{% for r in data %}
+{% for r in rows %}
 <tr>
-<td>{{r.name}}</td>
-<td>{{r.weekly}}%</td>
-<td>{{r.monthly}}%</td>
-<td>{{r.score}}</td>
-<td>{{r.direction}}</td>
-<td>{{r.text}}</td>
-<td>{{r.decision}}</td>
+<td>{{ loop.index }}</td>
+<td><b>{{ r.name }}</b></td>
+<td>{{ r.symbol }}</td>
+<td>{{ r.week }}</td>
+<td>{{ r.month }}</td>
+<td>{{ r.quarter }}</td>
+<td class="score">{{ r.score }}</td>
+<td>{{ r.direction }}</td>
+<td class="{% if r.is_error %}err{% endif %}">{{ r.forward }}</td>
+<td><b>{{ r.decision }}</b></td>
 </tr>
 {% endfor %}
-
 </table>
 
 </body>
@@ -197,10 +191,13 @@ th {background:black; color:white;}
 
 @app.route("/")
 def home():
-    data = scan()
-    return render_template_string(HTML, data=data)
+    return render_template_string(
+        HTML,
+        rows=scan(),
+        now=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        stamp=datetime.now().timestamp()
+    )
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
