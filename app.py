@@ -3,9 +3,9 @@ import requests
 import statistics
 from datetime import datetime
 
+import os
+API_KEY = os.getenv("TWELVE_API_KEY")
 app = Flask(__name__)
-
-API_KEY = "PUT_YOUR_API_KEY_HERE"
 
 # סימבולים תקינים בלבד
 FUNDS = [
