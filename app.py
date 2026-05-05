@@ -559,13 +559,13 @@ th{background:#e9eef5}
 </head>
 <body>
 
-<h2>📊 סורק קרנות/סל PRO</h2>
+<h2>📊 סורק מוצרי השקעה PRO</h2>
 
 <div class="legend">
 <b>מקרא:</b><br>
 🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-גרף + מאקרו + אקטואליה אמיתית מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
+הסורק מדרג מוצרי השקעה: קרנות סל, קרנות מחקות, קרנות נאמנות, מדדים וקרנות ממונפות. הציון כולל גרף + מאקרו + אקטואליה אמיתית מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
 </div>
 
 <button onclick="run()">🔵 סריקה</button>
@@ -608,8 +608,7 @@ async function run(){
         document.getElementById("market").innerHTML =
             `<div class="legend"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>`;
 
-        let html="<tr><th>#</th><th>שם לרכישה</th><th>מס׳ נייר</th><th>בסיס ניתוח</th><th>סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>אקטואליה — למה?</th></tr>";
-
+let html="<tr><th>#</th><th>שם מוצר / קרן / מדד</th><th>מס׳ נייר</th><th>בסיס ניתוח</th><th>סוג / סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>אקטואליה — למה?</th></tr>";
         d.results.forEach((x,i)=>{
             let cls="bad";
             if(x.reco.includes("קנייה") || x.reco.includes("חזק")) cls="buy";
