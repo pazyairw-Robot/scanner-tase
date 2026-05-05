@@ -251,14 +251,15 @@ def calc_graph(prices):
 
     vol = statistics.mean([abs(x) for x in daily[-60:]]) if daily else 0
 
+
     graph_score = (
-        0.10 * week +
-        0.20 * month +
-        0.30 * q3 +
-        0.25 * half +
-        0.15 * year -
-        0.70 * vol
+        0.15 * week +
+        0.30 * month +
+        0.40 * q3 +
+        0.15 * half -
+        0.75 * vol
     )
+
 
     return {
         "week": round(week, 1),
