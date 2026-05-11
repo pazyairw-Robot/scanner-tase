@@ -1,42 +1,114 @@
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, request
 import requests
 import os
 import time
 import statistics
+import json
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dtime
 from urllib.parse import quote_plus
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 
 app = Flask(__name__)
 API_KEY = os.getenv("API_KEY")
 
+# ============================================================
+# הגדרות Cache
+# ============================================================
+
+ISRAEL_TZ_NAME = "Asia/Jerusalem"
+ISRAEL_TZ = ZoneInfo(ISRAEL_TZ_NAME) if ZoneInfo else None
+
+RESULT_CACHE_FILE = "scanner_results_cache.json"
+RESULT_CACHE_TTL_SECONDS = 4 * 60 * 60      # 4 שעות
+DAILY_RESET_HOUR = 23
+DAILY_RESET_MINUTE = 30
+
+PRICE_CACHE = {}
+NEWS_CACHE = {}
+IN_MEMORY_CACHE_SECONDS = 900               # cache פנימי למחירים/חדשות בזמן ריצה
+
+
+# ============================================================
+# רשימת קרנות להצגה
+# חשוב:
+# 1. כל מוצר כאן חייב להיות ניתן לרכישה בישראל.
+# 2. אין יותר "בדוק בבנק".
+# 3. אם לא בטוח שמוצר קיים — enabled=False והוא לא יוצג.
+# 4. proxy = בסיס הניתוח הגרפי/אקטואלי בחו"ל.
+# 5. sec_no = מספר נייר ישראלי לרכישה בארץ.
+# ============================================================
+
 FUNDS = [
-    {"name": "קסם LBMA Gold Price PM USD ETF", "sec_no": "1146422", "proxy": "GLD", "risk": "סחורה", "theme": "gold"},
+    {
+        "enabled": True,
+        "name": "קסם LBMA Gold Price PM USD ETF",
+        "sec_no": "1146422",
+        "proxy": "GLD",
+        "risk": "סחורה",
+        "theme": "gold",
+        "exposure_type": "ישירה/סחורה"
+    },
 
-    {"name": "איילון אקסטרים Nasdaq 100 פי 3", "sec_no": "5128947", "proxy": "QQQ", "risk": "ממונף פי 3", "theme": "tech"},
-    {"name": "איילון אקסטרים S&P 500 פי 3", "sec_no": "5117759", "proxy": "SPY", "risk": "ממונף פי 3", "theme": "market"},
+    {
+        "enabled": True,
+        "name": "איילון אקסטרים Nasdaq 100 פי 3",
+        "sec_no": "5128947",
+        "proxy": "QQQ",
+        "risk": "ממונף פי 3",
+        "theme": "tech",
+        "exposure_type": "ישירה דרך מוצר ישראלי ממונף"
+    },
 
-    {"name": "קרן סל ישראלית עוקבת Nasdaq 100", "sec_no": "בדוק בבנק", "proxy": "QQQ", "risk": "רגיל", "theme": "tech"},
-    {"name": "קרן סל ישראלית עוקבת S&P 500", "sec_no": "בדוק בבנק", "proxy": "SPY", "risk": "רגיל", "theme": "market"},
+    {
+        "enabled": True,
+        "name": "איילון אקסטרים S&P 500 פי 3",
+        "sec_no": "5117759",
+        "proxy": "SPY",
+        "risk": "ממונף פי 3",
+        "theme": "market",
+        "exposure_type": "ישירה דרך מוצר ישראלי ממונף"
+    },
 
-    {"name": "קרן סל / קרן מחקה חשיפה לשבבים", "sec_no": "בדוק בבנק", "proxy": "SOXX", "risk": "רגיל", "theme": "semis"},
+    {
+        "enabled": True,
+        "name": "קסם KOSPI 200 ETF",
+        "sec_no": "1145754",
+        "proxy": "EWY",
+        "risk": "רגיל",
+        "theme": "asia",
+        "exposure_type": "ישירה לקוריאה"
+    },
 
-    {"name": "קרן סל קוריאה / מזרח אסיה", "sec_no": "בדוק בבנק", "proxy": "EWY", "risk": "רגיל", "theme": "asia"},
-    {"name": "קרן סל טאיוואן / מזרח אסיה", "sec_no": "בדוק בבנק", "proxy": "EWT", "risk": "רגיל", "theme": "semis"},
-    {"name": "קרן סל יפן", "sec_no": "בדוק בבנק", "proxy": "EWJ", "risk": "רגיל", "theme": "asia"},
-    {"name": "קרן סל הודו", "sec_no": "בדוק בבנק", "proxy": "INDA", "risk": "רגיל", "theme": "asia"},
-    {"name": "קרן סל סין", "sec_no": "בדוק בבנק", "proxy": "MCHI", "risk": "רגיל", "theme": "china"},
-    {"name": "קרן שווקים מתעוררים", "sec_no": "בדוק בבנק", "proxy": "EEM", "risk": "רגיל", "theme": "emerging"},
+    # שבבים:
+    # עדכן כאן את מספר הנייר המדויק שאתה קונה בארץ.
+    # אם המספר 5125315 אינו הקרן שאתה רוצה — החלף רק אותו.
+    {
+        "enabled": True,
+        "name": "קרן ישראלית מחקה שבבים / SOXX proxy",
+        "sec_no": "5125315",
+        "proxy": "SOXX",
+        "risk": "רגיל",
+        "theme": "semis",
+        "exposure_type": "עקיפה/סקטוריאלית - שבבים"
+    },
 
-    {"name": "קרן סל ישראל / ת״א 125 - proxy ישראל", "sec_no": "בדוק בבנק", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
-    {"name": "קרן סל ישראל / ת״א 35 - proxy ישראל", "sec_no": "בדוק בבנק", "proxy": "EIS", "risk": "רגיל", "theme": "israel"},
-
-    {"name": "קרן אנרגיה", "sec_no": "בדוק בבנק", "proxy": "VDE", "risk": "רגיל", "theme": "energy"},
-    {"name": "קרן פיננסים / בנקים", "sec_no": "בדוק בבנק", "proxy": "KBE", "risk": "רגיל", "theme": "banks"},
-    {"name": "קרן דולר / חשיפה לדולר", "sec_no": "בדוק בבנק", "proxy": "UUP", "risk": "מטבע", "theme": "dollar"},
-    {"name": "קרן סל נפט", "sec_no": "בדוק בבנק", "proxy": "USO", "risk": "סחורה", "theme": "oil"},
-    {"name": "קרן סל כסף", "sec_no": "בדוק בבנק", "proxy": "SLV", "risk": "סחורה", "theme": "silver"},
+    # טייוואן:
+    # אין להציג אם אין מוצר ישראלי ישיר פעיל.
+    # לכן EWT לא נכנס כרגע לרשימת FUNDS הפעילה.
+    # אם בעתיד תמצא מספר נייר ישראלי פעיל לטייוואן,
+    # הוסף רשומה חדשה enabled=True עם proxy="EWT".
 ]
+
+
+# ============================================================
+# חדשות
+# ============================================================
 
 NEWS_QUERIES = {
     "oil": "oil price OR crude oil OR OPEC OR Strait of Hormuz OR sanctions OR tanker",
@@ -60,24 +132,170 @@ NEG_WORDS = [
     "bearish", "concern", "fear", "cut", "slump"
 ]
 
-PRICE_CACHE = {}
-NEWS_CACHE = {}
-CACHE_SECONDS = 900
 
+# ============================================================
+# פונקציות זמן ו-Cache תוצאות מלאות
+# ============================================================
+
+def now_israel():
+    if ISRAEL_TZ:
+        return datetime.now(ISRAEL_TZ)
+    return datetime.now()
+
+
+def timestamp_to_israel_datetime(ts):
+    if ISRAEL_TZ:
+        return datetime.fromtimestamp(ts, ISRAEL_TZ)
+    return datetime.fromtimestamp(ts)
+
+
+def today_reset_datetime():
+    n = now_israel()
+    return datetime.combine(
+        n.date(),
+        dtime(DAILY_RESET_HOUR, DAILY_RESET_MINUTE),
+        tzinfo=ISRAEL_TZ
+    ) if ISRAEL_TZ else datetime.combine(
+        n.date(),
+        dtime(DAILY_RESET_HOUR, DAILY_RESET_MINUTE)
+    )
+
+
+def result_cache_is_valid(cache_data):
+    if not cache_data:
+        return False
+
+    saved_ts = cache_data.get("timestamp")
+    if not saved_ts:
+        return False
+
+    current_ts = time.time()
+    age_seconds = current_ts - saved_ts
+
+    # חוק 1: תוצאה תקפה עד 4 שעות
+    if age_seconds > RESULT_CACHE_TTL_SECONDS:
+        return False
+
+    # חוק 2: אם עברנו את 23:30 מאז הסריקה האחרונה — חובה לסרוק מחדש
+    saved_dt = timestamp_to_israel_datetime(saved_ts)
+    current_dt = now_israel()
+    reset_dt = today_reset_datetime()
+
+    if saved_dt < reset_dt <= current_dt:
+        return False
+
+    return True
+
+
+def load_result_cache():
+    if not os.path.exists(RESULT_CACHE_FILE):
+        return None
+
+    try:
+        with open(RESULT_CACHE_FILE, "r", encoding="utf-8") as f:
+            cache_data = json.load(f)
+
+        if result_cache_is_valid(cache_data):
+            return cache_data
+
+        return None
+
+    except Exception:
+        return None
+
+
+def save_result_cache(payload):
+    cache_data = {
+        "timestamp": time.time(),
+        "saved_at": now_israel().strftime("%Y-%m-%d %H:%M:%S"),
+        "payload": payload
+    }
+
+    with open(RESULT_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+
+def clear_result_cache():
+    try:
+        if os.path.exists(RESULT_CACHE_FILE):
+            os.remove(RESULT_CACHE_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def next_cache_reset_text():
+    n = now_israel()
+    reset_dt = today_reset_datetime()
+
+    if n >= reset_dt:
+        reset_dt = reset_dt + timedelta(days=1)
+
+    return reset_dt.strftime("%Y-%m-%d %H:%M")
+
+
+# ============================================================
+# Cache פנימי למחירים/חדשות
+# ============================================================
 
 def cached(key, cache):
     item = cache.get(key)
     if not item:
         return None
+
     t, value = item
-    if time.time() - t > CACHE_SECONDS:
+    if time.time() - t > IN_MEMORY_CACHE_SECONDS:
         return None
+
     return value
 
 
 def set_cache(key, cache, value):
     cache[key] = (time.time(), value)
 
+
+# ============================================================
+# בדיקת כשירות להצגה בישראל
+# ============================================================
+
+def is_valid_israel_security_number(sec_no):
+    if not sec_no:
+        return False
+
+    s = str(sec_no).strip()
+
+    if s == "בדוק בבנק":
+        return False
+
+    if not s.isdigit():
+        return False
+
+    # ברוב המקרים מספר נייר ישראלי הוא 7 ספרות.
+    # לא מחייבים 7 כדי לא לחסום חריגים, אבל כן דורשים מספר בלבד.
+    return True
+
+
+def get_enabled_tradeable_funds():
+    clean = []
+
+    for fund in FUNDS:
+        if not fund.get("enabled", True):
+            continue
+
+        if not is_valid_israel_security_number(fund.get("sec_no")):
+            continue
+
+        if not fund.get("proxy"):
+            continue
+
+        clean.append(fund)
+
+    return clean
+
+
+# ============================================================
+# Twelve Data
+# ============================================================
 
 def td_prices(symbol):
     cached_value = cached(symbol, PRICE_CACHE)
@@ -97,6 +315,7 @@ def td_prices(symbol):
 
     try:
         data = requests.get(url, params=params, timeout=25).json()
+
         if "values" not in data:
             return None
 
@@ -110,10 +329,16 @@ def td_prices(symbol):
         prices.reverse()
         result = prices if len(prices) >= 65 else None
         set_cache(symbol, PRICE_CACHE, result)
+
         return result
+
     except Exception:
         return None
 
+
+# ============================================================
+# חדשות
+# ============================================================
 
 def google_news_rss(query, max_items=6):
     try:
@@ -131,6 +356,7 @@ def google_news_rss(query, max_items=6):
             title = item.findtext("title") or ""
             source = ""
             src = item.find("source")
+
             if src is not None and src.text:
                 source = src.text
 
@@ -141,6 +367,7 @@ def google_news_rss(query, max_items=6):
                 })
 
         return items
+
     except Exception:
         return []
 
@@ -167,6 +394,7 @@ def gdelt_news(query, max_items=6):
         for a in articles[:max_items]:
             title = a.get("title", "")
             source = a.get("domain", "")
+
             if title:
                 items.append({
                     "title": title,
@@ -174,6 +402,7 @@ def gdelt_news(query, max_items=6):
                 })
 
         return items
+
     except Exception:
         return []
 
@@ -208,6 +437,7 @@ def news_context(topic):
 
     for item in gdelt + google:
         key = item["title"].strip().lower()
+
         if key and key not in seen:
             seen.add(key)
             combined.append(item)
@@ -231,9 +461,17 @@ def news_context(topic):
     return result
 
 
+# ============================================================
+# גרף/ניקוד
+# ============================================================
+
 def perf(prices, days):
     if not prices or len(prices) < days + 1:
         return 0
+
+    if prices[-days] == 0:
+        return 0
+
     return (prices[-1] / prices[-days] - 1) * 100
 
 
@@ -251,7 +489,7 @@ def calc_graph(prices):
 
     vol = statistics.mean([abs(x) for x in daily[-60:]]) if daily else 0
 
-
+    # משקל חזק ל-3 חודשים כפי שביקשת בעבר
     graph_score = (
         0.15 * week +
         0.30 * month +
@@ -259,7 +497,6 @@ def calc_graph(prices):
         0.15 * half -
         0.75 * vol
     )
-
 
     return {
         "week": round(week, 1),
@@ -278,7 +515,7 @@ def build_market_context(price_cache):
     for sym in required:
         if sym not in price_cache:
             price_cache[sym] = td_prices(sym)
-            time.sleep(0.3)
+            time.sleep(0.15)
 
     ctx = {
         "spy": perf(price_cache.get("SPY"), 21),
@@ -340,6 +577,7 @@ def topic_for_theme(theme):
         return "banks"
     if theme == "dollar":
         return "rates"
+
     return "rates"
 
 
@@ -381,8 +619,8 @@ def forward_adjust(fund, ctx, data):
     topic_news = ctx["news"].get(topic, {"score": 0, "count": 0})
     news_score = topic_news["score"]
 
-    # השפעת חדשות אמיתיות
     adj += news_score * 0.8
+
     if news_score > 1:
         reasons.append("חדשות רלוונטיות תומכות בכיוון")
     elif news_score < -1:
@@ -496,6 +734,7 @@ def forward_adjust(fund, ctx, data):
             adj -= 1
             reasons.append("Risk-on מפחית עדיפות לדולר")
 
+    # קנס מינוף
     if "פי 3" in risk:
         adj -= 3
         reasons.append("ממונף פי 3 — קנס סיכון")
@@ -529,8 +768,13 @@ def recommendation(score, risk):
         return "🟢 קנייה"
     if score >= 1:
         return "🟡 מעקב"
+
     return "🔴 להימנע"
 
+
+# ============================================================
+# HTML
+# ============================================================
 
 @app.route("/")
 def home():
@@ -544,11 +788,13 @@ def home():
 <style>
 body{direction:rtl;font-family:Arial;padding:12px;background:#f6f7fb}
 h2{text-align:center}
-button{width:100%;padding:16px;font-size:22px;border-radius:12px;border:0;background:#1976d2;color:white}
+button{width:100%;padding:16px;font-size:22px;border-radius:12px;border:0;background:#1976d2;color:white;margin-top:8px}
+button.force{background:#c62828}
 #loading{text-align:center;font-size:19px;margin:18px}
 .spinner{font-size:38px;animation:flip 1s infinite}
 @keyframes flip{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
 .legend{background:white;border-radius:12px;padding:12px;margin:10px 0;font-size:14px;line-height:1.6}
+.cacheBox{background:#fff8e1;border:1px solid #f1d27a;border-radius:12px;padding:10px;margin:10px 0;font-size:14px;line-height:1.5}
 table{width:100%;border-collapse:collapse;background:white;margin-top:12px;font-size:12px}
 th,td{border:1px solid #ddd;padding:6px;text-align:center;vertical-align:top}
 th{background:#e9eef5}
@@ -556,6 +802,7 @@ th{background:#e9eef5}
 .mid{color:#b36b00;font-weight:bold}
 .bad{color:red;font-weight:bold}
 .reason{font-size:11px;text-align:right;min-width:260px;line-height:1.45}
+.small{font-size:12px;color:#555}
 </style>
 </head>
 <body>
@@ -566,24 +813,34 @@ th{background:#e9eef5}
 <b>מקרא:</b><br>
 🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-הסורק מדרג מוצרי השקעה: קרנות סל, קרנות מחקות, קרנות נאמנות, מדדים וקרנות ממונפות. הציון כולל גרף + מאקרו + אקטואליה אמיתית מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
+הסורק מדרג רק מוצרים עם מספר נייר ישראלי מוגדר. אין הצגה של "בדוק בבנק". הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
 </div>
 
-<button onclick="run()">🔵 סריקה</button>
+<div class="cacheBox">
+<b>ריענון:</b><br>
+תוצאה נשמרת ל־4 שעות. בשעה 23:30 לפי שעון ישראל מתבצע איפוס יומי אוטומטי, גם אם טרם עברו 4 שעות.<br>
+כפתור "סריקה מחודשת" מוחק Cache ומריץ סריקה חדשה מיד.
+</div>
+
+<button onclick="run(false)">🔵 סריקה רגילה</button>
+<button class="force" onclick="run(true)">🔴 סריקה מחודשת / איפוס Cache</button>
 
 <div id="loading"></div>
+<div id="cache"></div>
 <div id="market"></div>
 <table id="t"></table>
 
 <script>
 let timer=null, seconds=0;
 
-function startClock(){
+function startClock(isForce){
     seconds=0;
     timer=setInterval(()=>{
         seconds++;
         document.getElementById("loading").innerHTML =
-        `<div class="spinner">⏳</div><div>מנתח גרף + אקטואליה אמיתית... ${seconds} שניות</div><div style="font-size:13px;color:#555">יכול לקחת עד כמה דקות</div>`;
+        `<div class="spinner">⏳</div>
+         <div>${isForce ? "מבצע סריקה מחודשת..." : "בודק Cache / מנתח גרף + אקטואליה..."} ${seconds} שניות</div>
+         <div class="small">בסריקה רגילה תוצאה קיימת עד 4 שעות תחזור מהר. סריקה מחודשת יכולה לקחת כמה דקות.</div>`;
     },1000);
 }
 
@@ -592,48 +849,64 @@ function stopClock(msg){
     document.getElementById("loading").innerText=msg;
 }
 
-async function run(){
+function render(data){
+    document.getElementById("cache").innerHTML =
+        `<div class="cacheBox">
+            <b>סטטוס:</b> ${data.from_cache ? "הוצג מתוך Cache" : "בוצעה סריקה חדשה"}<br>
+            <b>נשמר בתאריך:</b> ${data.saved_at || "-"}<br>
+            <b>איפוס יומי הבא:</b> ${data.next_daily_reset || "-"}<br>
+            <b>מספר מוצרים שהוצגו:</b> ${(data.results || []).length}
+        </div>`;
+
+    document.getElementById("market").innerHTML =
+        `<div class="legend"><b>מצב שוק:</b><br>${(data.market || []).join("<br>")}</div>`;
+
+    let html="<tr><th>#</th><th>שם מוצר / קרן</th><th>מס׳ נייר בישראל</th><th>בסיס ניתוח</th><th>חשיפה</th><th>סוג / סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>אקטואליה — למה?</th></tr>";
+
+    (data.results || []).forEach((x,i)=>{
+        let cls="bad";
+        if(x.reco.includes("קנייה") || x.reco.includes("חזק")) cls="buy";
+        else if(x.reco.includes("מעקב")) cls="mid";
+
+        html+=`<tr>
+            <td>${i+1}</td>
+            <td>${x.name}</td>
+            <td>${x.sec_no}</td>
+            <td>${x.proxy}</td>
+            <td>${x.exposure_type || ""}</td>
+            <td>${x.risk}</td>
+            <td>${x.month}%</td>
+            <td>${x.q3}%</td>
+            <td>${x.half}%</td>
+            <td>${x.graph_score}</td>
+            <td>${x.forward_adj}</td>
+            <td>${x.final_score}</td>
+            <td class="${cls}">${x.reco}</td>
+            <td class="reason">${x.reason}</td>
+        </tr>`;
+    });
+
+    document.getElementById("t").innerHTML=html;
+}
+
+async function run(force){
     document.getElementById("t").innerHTML="";
     document.getElementById("market").innerHTML="";
-    startClock();
+    document.getElementById("cache").innerHTML="";
+    startClock(force);
 
     try{
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 240000);
 
-        let r = await fetch('/scan?ts=' + Date.now(), {signal: controller.signal, cache: "no-store"});
+        let url = force ? "/scan?force=1&ts=" + Date.now() : "/scan?ts=" + Date.now();
+        let r = await fetch(url, {signal: controller.signal, cache: "no-store"});
         clearTimeout(timeoutId);
 
         let d = await r.json();
+        render(d);
 
-        document.getElementById("market").innerHTML =
-            `<div class="legend"><b>מצב שוק:</b><br>${d.market.join("<br>")}</div>`;
-
-let html="<tr><th>#</th><th>שם מוצר / קרן / מדד</th><th>מס׳ נייר</th><th>בסיס ניתוח</th><th>סוג / סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>אקטואליה — למה?</th></tr>";
-        d.results.forEach((x,i)=>{
-            let cls="bad";
-            if(x.reco.includes("קנייה") || x.reco.includes("חזק")) cls="buy";
-            else if(x.reco.includes("מעקב")) cls="mid";
-
-            html+=`<tr>
-                <td>${i+1}</td>
-                <td>${x.name}</td>
-                <td>${x.sec_no}</td>
-                <td>${x.proxy}</td>
-                <td>${x.risk}</td>
-                <td>${x.month}%</td>
-                <td>${x.q3}%</td>
-                <td>${x.half}%</td>
-                <td>${x.graph_score}</td>
-                <td>${x.forward_adj}</td>
-                <td>${x.final_score}</td>
-                <td class="${cls}">${x.reco}</td>
-                <td class="reason">${x.reason}</td>
-            </tr>`;
-        });
-
-        document.getElementById("t").innerHTML=html;
-        stopClock("✅ הסריקה הסתיימה");
+        stopClock(force ? "✅ הסריקה המחודשת הסתיימה" : "✅ הסריקה הסתיימה");
 
     }catch(e){
         stopClock("⚠️ הסריקה נתקעה או חרגה מזמן. נסה שוב.");
@@ -646,25 +919,30 @@ let html="<tr><th>#</th><th>שם מוצר / קרן / מדד</th><th>מס׳ ני�
 """)
 
 
-@app.route("/scan")
-def scan():
+# ============================================================
+# סריקה
+# ============================================================
+
+def run_full_scan():
     price_cache = {}
     results = []
     errors = []
 
     ctx = build_market_context(price_cache)
+    tradeable_funds = get_enabled_tradeable_funds()
 
-    for fund in FUNDS:
+    for fund in tradeable_funds:
         try:
             proxy = fund["proxy"]
 
             if proxy not in price_cache:
                 price_cache[proxy] = td_prices(proxy)
-                time.sleep(0.3)
+                time.sleep(0.15)
 
             prices = price_cache.get(proxy)
+
             if not prices:
-                errors.append(fund["name"])
+                errors.append(f"{fund['name']} - אין נתוני מחיר עבור proxy {proxy}")
                 continue
 
             data = calc_graph(prices)
@@ -676,6 +954,8 @@ def scan():
                 "sec_no": fund["sec_no"],
                 "proxy": proxy,
                 "risk": fund["risk"],
+                "theme": fund["theme"],
+                "exposure_type": fund.get("exposure_type", ""),
                 **data,
                 "forward_adj": adj,
                 "final_score": final_score,
@@ -684,14 +964,56 @@ def scan():
             })
 
         except Exception as e:
-            errors.append(f"{fund['name']}: {e}")
+            errors.append(f"{fund.get('name', 'Unknown')}: {e}")
 
-    results = sorted(results, key=lambda x: x["final_score"], reverse=True)[:10]
+    results = sorted(results, key=lambda x: x["final_score"], reverse=True)
 
-    return jsonify({
+    # עד 10 מוצרים. אם ברשימת FUNDS יש פחות מ-10 מאומתים, יוצגו פחות מ-10.
+    results = results[:10]
+
+    payload = {
         "market": ctx["summary"],
         "results": results,
-        "errors": errors
+        "errors": errors,
+        "tradeable_count": len(tradeable_funds),
+        "next_daily_reset": next_cache_reset_text()
+    }
+
+    return payload
+
+
+@app.route("/scan")
+def scan():
+    force = request.args.get("force") == "1"
+
+    if force:
+        clear_result_cache()
+
+    if not force:
+        cached_payload = load_result_cache()
+        if cached_payload:
+            payload = cached_payload.get("payload", {})
+            payload["from_cache"] = True
+            payload["saved_at"] = cached_payload.get("saved_at")
+            payload["next_daily_reset"] = next_cache_reset_text()
+            return jsonify(payload)
+
+    payload = run_full_scan()
+    payload["from_cache"] = False
+    payload["saved_at"] = now_israel().strftime("%Y-%m-%d %H:%M:%S")
+    payload["next_daily_reset"] = next_cache_reset_text()
+
+    save_result_cache(payload)
+
+    return jsonify(payload)
+
+
+@app.route("/reset-cache", methods=["POST"])
+def reset_cache():
+    ok = clear_result_cache()
+    return jsonify({
+        "ok": ok,
+        "message": "Cache אופס" if ok else "לא היה Cache למחיקה או שהמחיקה נכשלה"
     })
 
 
