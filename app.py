@@ -45,6 +45,9 @@ IN_MEMORY_CACHE_SECONDS = 900               # cache פנימי למחירים/ח
 # ============================================================
 
 FUNDS = [
+    # ========================================================
+    # סחורות
+    # ========================================================
     {
         "enabled": True,
         "name": "קסם LBMA Gold Price PM USD ETF",
@@ -52,9 +55,83 @@ FUNDS = [
         "proxy": "GLD",
         "risk": "סחורה",
         "theme": "gold",
-        "exposure_type": "ישירה/סחורה"
+        "exposure_type": "זהב / חשיפה לסחורה"
+    },
+    {
+        "enabled": True,
+        "name": "תכלית סל Bloomberg Silver",
+        "sec_no": "1144542",
+        "proxy": "SLV",
+        "risk": "סחורה",
+        "theme": "silver",
+        "exposure_type": "כסף / חשיפה לסחורה"
     },
 
+    # ========================================================
+    # ארה״ב - מדדים רחבים
+    # ========================================================
+    {
+        "enabled": True,
+        "name": "קסם S&P 500 ETF",
+        "sec_no": "1146471",
+        "proxy": "SPY",
+        "risk": "רגיל",
+        "theme": "market",
+        "exposure_type": "חשיפה ישירה ל-S&P 500 דרך מוצר ישראלי"
+    },
+    {
+        "enabled": True,
+        "name": "iShares Core S&P 500 UCITS ETF - נסחר בארץ",
+        "sec_no": "1159250",
+        "proxy": "SPY",
+        "risk": "רגיל",
+        "theme": "market",
+        "exposure_type": "קרן חוץ נסחרת בארץ על S&P 500"
+    },
+    {
+        "enabled": True,
+        "name": "Invesco S&P 500 UCITS ETF - נסחר בארץ",
+        "sec_no": "1183441",
+        "proxy": "SPY",
+        "risk": "רגיל",
+        "theme": "market",
+        "exposure_type": "קרן חוץ נסחרת בארץ על S&P 500"
+    },
+    {
+        "enabled": True,
+        "name": "קסם S&P 500 KTF",
+        "sec_no": "5124482",
+        "proxy": "SPY",
+        "risk": "רגיל",
+        "theme": "market",
+        "exposure_type": "קרן ישראלית מחקה S&P 500"
+    },
+
+    # ========================================================
+    # נאסד״ק / טכנולוגיה
+    # ========================================================
+    {
+        "enabled": True,
+        "name": "תכלית סל NASDAQ 100 מנוטרלת מט״ח",
+        "sec_no": "1143734",
+        "proxy": "QQQ",
+        "risk": "רגיל",
+        "theme": "tech",
+        "exposure_type": "חשיפה ל-Nasdaq 100 דרך מוצר ישראלי"
+    },
+    {
+        "enabled": True,
+        "name": "iShares NASDAQ 100 UCITS ETF - נסחר בארץ",
+        "sec_no": "1159243",
+        "proxy": "QQQ",
+        "risk": "רגיל",
+        "theme": "tech",
+        "exposure_type": "קרן חוץ נסחרת בארץ על Nasdaq 100"
+    },
+
+    # ========================================================
+    # ממונפות
+    # ========================================================
     {
         "enabled": True,
         "name": "איילון אקסטרים Nasdaq 100 פי 3",
@@ -62,9 +139,8 @@ FUNDS = [
         "proxy": "QQQ",
         "risk": "ממונף פי 3",
         "theme": "tech",
-        "exposure_type": "ישירה דרך מוצר ישראלי ממונף"
+        "exposure_type": "חשיפה ממונפת לנאסד״ק"
     },
-
     {
         "enabled": True,
         "name": "איילון אקסטרים S&P 500 פי 3",
@@ -72,9 +148,25 @@ FUNDS = [
         "proxy": "SPY",
         "risk": "ממונף פי 3",
         "theme": "market",
-        "exposure_type": "ישירה דרך מוצר ישראלי ממונף"
+        "exposure_type": "חשיפה ממונפת ל-S&P 500"
     },
 
+    # ========================================================
+    # שבבים
+    # ========================================================
+    {
+        "enabled": True,
+        "name": "תכלית סל PHLX Semiconductor Sector",
+        "sec_no": "1170703",
+        "proxy": "SOXX",
+        "risk": "רגיל",
+        "theme": "semis",
+        "exposure_type": "שבבים / Semiconductor"
+    },
+
+    # ========================================================
+    # אסיה / מתעוררים
+    # ========================================================
     {
         "enabled": True,
         "name": "קסם KOSPI 200 ETF",
@@ -82,29 +174,83 @@ FUNDS = [
         "proxy": "EWY",
         "risk": "רגיל",
         "theme": "asia",
-        "exposure_type": "ישירה לקוריאה"
+        "exposure_type": "חשיפה ישירה לקוריאה"
     },
-
-    # שבבים:
-    # עדכן כאן את מספר הנייר המדויק שאתה קונה בארץ.
-    # אם המספר 5125315 אינו הקרן שאתה רוצה — החלף רק אותו.
     {
         "enabled": True,
-        "name": "קרן ישראלית מחקה שבבים / SOXX proxy",
-        "sec_no": "5125315",
-        "proxy": "SOXX",
+        "name": "קסם MSCI India ETF",
+        "sec_no": "1145747",
+        "proxy": "INDA",
         "risk": "רגיל",
-        "theme": "semis",
-        "exposure_type": "עקיפה/סקטוריאלית - שבבים"
+        "theme": "asia",
+        "exposure_type": "חשיפה להודו"
+    },
+    {
+        "enabled": True,
+        "name": "תכלית סל MSCI India",
+        "sec_no": "1144112",
+        "proxy": "INDA",
+        "risk": "רגיל",
+        "theme": "asia",
+        "exposure_type": "חשיפה להודו"
+    },
+    {
+        "enabled": True,
+        "name": "קסם MSCI Emerging Markets ETF מנוטרלת דולר",
+        "sec_no": "1146737",
+        "proxy": "EEM",
+        "risk": "רגיל",
+        "theme": "emerging",
+        "exposure_type": "שווקים מתעוררים"
+    },
+    {
+        "enabled": True,
+        "name": "iShares Core MSCI EM IMI UCITS ETF - נסחר בארץ",
+        "sec_no": "1159169",
+        "proxy": "EEM",
+        "risk": "רגיל",
+        "theme": "emerging",
+        "exposure_type": "קרן חוץ נסחרת בארץ על שווקים מתעוררים"
+    },
+    {
+        "enabled": True,
+        "name": "Invesco MSCI Emerging Markets UCITS ETF - נסחר בארץ",
+        "sec_no": "1183490",
+        "proxy": "EEM",
+        "risk": "רגיל",
+        "theme": "emerging",
+        "exposure_type": "קרן חוץ נסחרת בארץ על שווקים מתעוררים"
     },
 
-    # טייוואן:
-    # אין להציג אם אין מוצר ישראלי ישיר פעיל.
-    # לכן EWT לא נכנס כרגע לרשימת FUNDS הפעילה.
-    # אם בעתיד תמצא מספר נייר ישראלי פעיל לטייוואן,
-    # הוסף רשומה חדשה enabled=True עם proxy="EWT".
-]
+    # ========================================================
+    # ישראל
+    # ========================================================
+    {
+        "enabled": True,
+        "name": "MTF סל ת״א 125",
+        "sec_no": "1150283",
+        "proxy": "EIS",
+        "risk": "רגיל",
+        "theme": "israel",
+        "exposure_type": "ישראל / ת״א 125"
+    },
+    {
+        "enabled": True,
+        "name": "תכלית סל כשרה ת״א 125",
+        "sec_no": "1155373",
+        "proxy": "EIS",
+        "risk": "רגיל",
+        "theme": "israel",
+        "exposure_type": "ישראל / ת״א 125"
+    },
 
+    # ========================================================
+    # טייוואן
+    # אין כרגע מוצר ישראלי ישיר פעיל שאימתנו, לכן לא מכניסים EWT.
+    # אם בעתיד תמצא מספר נייר ישראלי פעיל לטייוואן, מוסיפים כאן:
+    # enabled=True, proxy="EWT", theme="asia".
+    # ========================================================
+]
 
 # ============================================================
 # חדשות
@@ -968,7 +1114,7 @@ def run_full_scan():
 
     results = sorted(results, key=lambda x: x["final_score"], reverse=True)
 
-    # עד 10 מוצרים. אם ברשימת FUNDS יש פחות מ-10 מאומתים, יוצגו פחות מ-10.
+    # מציגים TOP 10 מתוך כל הקרנות המאומתות שניתן לרכוש בארץ.
     results = results[:10]
 
     payload = {
