@@ -941,7 +941,7 @@ th{background:#e9eef5}
 <b>מקרא:</b><br>
 🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-הסורק מדרג מאגר רחב של מוצרים עם מספר נייר ישראלי מוגדר בלבד. אין הצגה של "בדוק בבנק" או מוצר שלא הוגדר כבר־רכישה בישראל. הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
+הסורק מדרג מאגר רחב של מוצרים עם מספר נייר ישראלי מוגדר בלבד. אין הצגה של "בדוק בבנק". ה-TOP 10 מגוון: מוצר אחד בלבד לכל בסיס ניתוח, כדי שלא יהיו כפילויות כמו QQQ/EEM כמה פעמים. הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
 </div>
 
 <div class="cacheBox">
@@ -983,7 +983,8 @@ function render(data){
             <b>סטטוס:</b> ${data.from_cache ? "הוצג מתוך Cache" : "בוצעה סריקה חדשה"}<br>
             <b>נשמר בתאריך:</b> ${data.saved_at || "-"}<br>
             <b>איפוס יומי הבא:</b> ${data.next_daily_reset || "-"}<br>
-            <b>מספר מוצרים שהוצגו:</b> ${(data.results || []).length}
+            <b>מספר מוצרים שהוצגו:</b> ${(data.results || []).length}<br>
+            <b>כפילויות שדולגו:</b> ${(data.skipped_duplicates || []).length}
         </div>`;
 
     document.getElementById("market").innerHTML =
@@ -1094,16 +1095,49 @@ def run_full_scan():
         except Exception as e:
             errors.append(f"{fund.get('name', 'Unknown')}: {e}")
 
+    # ========================================================
+    # דירוג מגוון:
+    # קודם מדרגים את כל המוצרים, ואז משאירים רק מוצר אחד לכל proxy.
+    # כך לא מקבלים 3 קרנות EEM או 2 קרנות QQQ שתופסות מקום ב-TOP 10.
+    # אם יש כמה מוצרים על אותו proxy, נשמר המוצר עם הציון הגבוה ביותר.
+    # ========================================================
+
     results = sorted(results, key=lambda x: x["final_score"], reverse=True)
 
-    # מציגים TOP 10 מתוך כל הקרנות המאומתות שניתן לרכוש בארץ.
-    results = results[:10]
+    unique_results = []
+    seen_proxies = set()
+    skipped_duplicates = []
+
+    for item in results:
+        proxy_key = item.get("proxy", "").strip().upper()
+
+        if not proxy_key:
+            continue
+
+        if proxy_key in seen_proxies:
+            skipped_duplicates.append({
+                "name": item.get("name"),
+                "sec_no": item.get("sec_no"),
+                "proxy": item.get("proxy"),
+                "final_score": item.get("final_score"),
+                "reason": "דולג כי כבר נבחר מוצר אחר עם אותו בסיס ניתוח"
+            })
+            continue
+
+        seen_proxies.add(proxy_key)
+        unique_results.append(item)
+
+        if len(unique_results) >= 10:
+            break
+
+    results = unique_results
 
     payload = {
         "market": ctx["summary"],
         "results": results,
         "errors": errors,
         "tradeable_count": len(tradeable_funds),
+        "skipped_duplicates": skipped_duplicates,
         "next_daily_reset": next_cache_reset_text()
     }
 
