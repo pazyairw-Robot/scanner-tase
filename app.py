@@ -48,207 +48,70 @@ FUNDS = [
     # ========================================================
     # סחורות
     # ========================================================
-    {
-        "enabled": True,
-        "name": "קסם LBMA Gold Price PM USD ETF",
-        "sec_no": "1146422",
-        "proxy": "GLD",
-        "risk": "סחורה",
-        "theme": "gold",
-        "exposure_type": "זהב / חשיפה לסחורה"
-    },
-    {
-        "enabled": True,
-        "name": "תכלית סל Bloomberg Silver",
-        "sec_no": "1144542",
-        "proxy": "SLV",
-        "risk": "סחורה",
-        "theme": "silver",
-        "exposure_type": "כסף / חשיפה לסחורה"
-    },
+    {"enabled": True, "name": "קסם LBMA Gold Price PM USD ETF", "sec_no": "1146422", "proxy": "GLD", "risk": "סחורה", "theme": "gold", "exposure_type": "זהב / חשיפה לסחורה"},
+    {"enabled": True, "name": "תכלית סל Bloomberg Silver", "sec_no": "1144542", "proxy": "SLV", "risk": "סחורה", "theme": "silver", "exposure_type": "כסף / חשיפה לסחורה"},
 
     # ========================================================
     # ארה״ב - מדדים רחבים
     # ========================================================
-    {
-        "enabled": True,
-        "name": "קסם S&P 500 ETF",
-        "sec_no": "1146471",
-        "proxy": "SPY",
-        "risk": "רגיל",
-        "theme": "market",
-        "exposure_type": "חשיפה ישירה ל-S&P 500 דרך מוצר ישראלי"
-    },
-    {
-        "enabled": True,
-        "name": "iShares Core S&P 500 UCITS ETF - נסחר בארץ",
-        "sec_no": "1159250",
-        "proxy": "SPY",
-        "risk": "רגיל",
-        "theme": "market",
-        "exposure_type": "קרן חוץ נסחרת בארץ על S&P 500"
-    },
-    {
-        "enabled": True,
-        "name": "Invesco S&P 500 UCITS ETF - נסחר בארץ",
-        "sec_no": "1183441",
-        "proxy": "SPY",
-        "risk": "רגיל",
-        "theme": "market",
-        "exposure_type": "קרן חוץ נסחרת בארץ על S&P 500"
-    },
-    {
-        "enabled": True,
-        "name": "קסם S&P 500 KTF",
-        "sec_no": "5124482",
-        "proxy": "SPY",
-        "risk": "רגיל",
-        "theme": "market",
-        "exposure_type": "קרן ישראלית מחקה S&P 500"
-    },
+    {"enabled": True, "name": "קסם S&P 500 ETF", "sec_no": "1146471", "proxy": "SPY", "risk": "רגיל", "theme": "market", "exposure_type": "חשיפה ל-S&P 500 דרך מוצר ישראלי"},
+    {"enabled": True, "name": "iShares Core S&P 500 UCITS ETF - נסחר בארץ", "sec_no": "1159250", "proxy": "SPY", "risk": "רגיל", "theme": "market", "exposure_type": "קרן חוץ נסחרת בארץ על S&P 500"},
+    {"enabled": True, "name": "Invesco S&P 500 UCITS ETF - נסחר בארץ", "sec_no": "1183441", "proxy": "SPY", "risk": "רגיל", "theme": "market", "exposure_type": "קרן חוץ נסחרת בארץ על S&P 500"},
+    {"enabled": True, "name": "קסם S&P 500 KTF", "sec_no": "5124482", "proxy": "SPY", "risk": "רגיל", "theme": "market", "exposure_type": "קרן ישראלית מחקה S&P 500"},
 
     # ========================================================
     # נאסד״ק / טכנולוגיה
     # ========================================================
-    {
-        "enabled": True,
-        "name": "תכלית סל NASDAQ 100 מנוטרלת מט״ח",
-        "sec_no": "1143734",
-        "proxy": "QQQ",
-        "risk": "רגיל",
-        "theme": "tech",
-        "exposure_type": "חשיפה ל-Nasdaq 100 דרך מוצר ישראלי"
-    },
-    {
-        "enabled": True,
-        "name": "iShares NASDAQ 100 UCITS ETF - נסחר בארץ",
-        "sec_no": "1159243",
-        "proxy": "QQQ",
-        "risk": "רגיל",
-        "theme": "tech",
-        "exposure_type": "קרן חוץ נסחרת בארץ על Nasdaq 100"
-    },
+    {"enabled": True, "name": "תכלית סל NASDAQ 100 מנוטרלת מט״ח", "sec_no": "1143734", "proxy": "QQQ", "risk": "רגיל", "theme": "tech", "exposure_type": "חשיפה ל-Nasdaq 100 דרך מוצר ישראלי"},
+    {"enabled": True, "name": "iShares NASDAQ 100 UCITS ETF - נסחר בארץ", "sec_no": "1159243", "proxy": "QQQ", "risk": "רגיל", "theme": "tech", "exposure_type": "קרן חוץ נסחרת בארץ על Nasdaq 100"},
 
     # ========================================================
     # ממונפות
     # ========================================================
-    {
-        "enabled": True,
-        "name": "איילון אקסטרים Nasdaq 100 פי 3",
-        "sec_no": "5128947",
-        "proxy": "QQQ",
-        "risk": "ממונף פי 3",
-        "theme": "tech",
-        "exposure_type": "חשיפה ממונפת לנאסד״ק"
-    },
-    {
-        "enabled": True,
-        "name": "איילון אקסטרים S&P 500 פי 3",
-        "sec_no": "5117759",
-        "proxy": "SPY",
-        "risk": "ממונף פי 3",
-        "theme": "market",
-        "exposure_type": "חשיפה ממונפת ל-S&P 500"
-    },
+    {"enabled": True, "name": "איילון אקסטרים Nasdaq 100 פי 3", "sec_no": "5128947", "proxy": "QQQ", "risk": "ממונף פי 3", "theme": "tech", "exposure_type": "חשיפה ממונפת לנאסד״ק"},
+    {"enabled": True, "name": "איילון אקסטרים S&P 500 פי 3", "sec_no": "5117759", "proxy": "SPY", "risk": "ממונף פי 3", "theme": "market", "exposure_type": "חשיפה ממונפת ל-S&P 500"},
 
     # ========================================================
-    # שבבים
+    # שבבים / AI / סייבר / רובוטיקה
     # ========================================================
-    {
-        "enabled": True,
-        "name": "תכלית סל PHLX Semiconductor Sector",
-        "sec_no": "1170703",
-        "proxy": "SOXX",
-        "risk": "רגיל",
-        "theme": "semis",
-        "exposure_type": "שבבים / Semiconductor"
-    },
+    {"enabled": True, "name": "תכלית סל PHLX Semiconductor Sector", "sec_no": "1170703", "proxy": "SOXX", "risk": "רגיל", "theme": "semis", "exposure_type": "שבבים / Semiconductor"},
+    {"enabled": True, "name": "קסם ISE Cyber Security ETF", "sec_no": "1168715", "proxy": "HACK", "risk": "רגיל", "theme": "cyber", "exposure_type": "סייבר"},
+    {"enabled": True, "name": "תכלית סל ISE Cyber Security", "sec_no": "1144252", "proxy": "HACK", "risk": "רגיל", "theme": "cyber", "exposure_type": "סייבר"},
+    {"enabled": True, "name": "אי.בי.אי. מחקה ISE Cyber Security", "sec_no": "5132527", "proxy": "HACK", "risk": "רגיל", "theme": "cyber", "exposure_type": "סייבר"},
+    {"enabled": True, "name": "קסם אקטיב מניות רובוטיקה חו״ל", "sec_no": "5127253", "proxy": "BOTZ", "risk": "רגיל", "theme": "robotics", "exposure_type": "רובוטיקה / אוטומציה / AI"},
+
+    # ========================================================
+    # ביטחון / גרעין / אורניום
+    # ========================================================
+    {"enabled": True, "name": "קסם KTF אינדקס תעשיות ביטחוניות גלובלי", "sec_no": "5138748", "proxy": "ITA", "risk": "רגיל", "theme": "defense", "exposure_type": "תעשיות ביטחוניות גלובליות"},
+    {"enabled": True, "name": "אי.בי.אי. מחקה Indxx Nuclear Energy Industry מנוטרלת דולר", "sec_no": "5140298", "proxy": "URA", "risk": "רגיל", "theme": "nuclear", "exposure_type": "אנרגיה גרעינית / אורניום"},
+
+    # ========================================================
+    # גלובלי / אירופה
+    # ========================================================
+    {"enabled": True, "name": "MTF מחקה MSCI World", "sec_no": "5122569", "proxy": "URTH", "risk": "רגיל", "theme": "world", "exposure_type": "מניות גלובליות / MSCI World"},
+    {"enabled": True, "name": "iShares Core MSCI Europe UCITS ETF - נסחר בארץ", "sec_no": "1159094", "proxy": "VGK", "risk": "רגיל", "theme": "europe", "exposure_type": "אירופה / MSCI Europe"},
 
     # ========================================================
     # אסיה / מתעוררים
     # ========================================================
-    {
-        "enabled": True,
-        "name": "קסם KOSPI 200 ETF",
-        "sec_no": "1145754",
-        "proxy": "EWY",
-        "risk": "רגיל",
-        "theme": "asia",
-        "exposure_type": "חשיפה ישירה לקוריאה"
-    },
-    {
-        "enabled": True,
-        "name": "קסם MSCI India ETF",
-        "sec_no": "1145747",
-        "proxy": "INDA",
-        "risk": "רגיל",
-        "theme": "asia",
-        "exposure_type": "חשיפה להודו"
-    },
-    {
-        "enabled": True,
-        "name": "תכלית סל MSCI India",
-        "sec_no": "1144112",
-        "proxy": "INDA",
-        "risk": "רגיל",
-        "theme": "asia",
-        "exposure_type": "חשיפה להודו"
-    },
-    {
-        "enabled": True,
-        "name": "קסם MSCI Emerging Markets ETF מנוטרלת דולר",
-        "sec_no": "1146737",
-        "proxy": "EEM",
-        "risk": "רגיל",
-        "theme": "emerging",
-        "exposure_type": "שווקים מתעוררים"
-    },
-    {
-        "enabled": True,
-        "name": "iShares Core MSCI EM IMI UCITS ETF - נסחר בארץ",
-        "sec_no": "1159169",
-        "proxy": "EEM",
-        "risk": "רגיל",
-        "theme": "emerging",
-        "exposure_type": "קרן חוץ נסחרת בארץ על שווקים מתעוררים"
-    },
-    {
-        "enabled": True,
-        "name": "Invesco MSCI Emerging Markets UCITS ETF - נסחר בארץ",
-        "sec_no": "1183490",
-        "proxy": "EEM",
-        "risk": "רגיל",
-        "theme": "emerging",
-        "exposure_type": "קרן חוץ נסחרת בארץ על שווקים מתעוררים"
-    },
+    {"enabled": True, "name": "קסם KOSPI 200 ETF", "sec_no": "1145754", "proxy": "EWY", "risk": "רגיל", "theme": "asia", "exposure_type": "חשיפה ישירה לקוריאה"},
+    {"enabled": True, "name": "קסם MSCI India ETF", "sec_no": "1145747", "proxy": "INDA", "risk": "רגיל", "theme": "asia", "exposure_type": "חשיפה להודו"},
+    {"enabled": True, "name": "תכלית סל MSCI India", "sec_no": "1144112", "proxy": "INDA", "risk": "רגיל", "theme": "asia", "exposure_type": "חשיפה להודו"},
+    {"enabled": True, "name": "קסם MSCI Emerging Markets ETF מנוטרלת דולר", "sec_no": "1146737", "proxy": "EEM", "risk": "רגיל", "theme": "emerging", "exposure_type": "שווקים מתעוררים"},
+    {"enabled": True, "name": "iShares Core MSCI EM IMI UCITS ETF - נסחר בארץ", "sec_no": "1159169", "proxy": "EEM", "risk": "רגיל", "theme": "emerging", "exposure_type": "קרן חוץ נסחרת בארץ על שווקים מתעוררים"},
+    {"enabled": True, "name": "Invesco MSCI Emerging Markets UCITS ETF - נסחר בארץ", "sec_no": "1183490", "proxy": "EEM", "risk": "רגיל", "theme": "emerging", "exposure_type": "קרן חוץ נסחרת בארץ על שווקים מתעוררים"},
 
     # ========================================================
     # ישראל
     # ========================================================
-    {
-        "enabled": True,
-        "name": "MTF סל ת״א 125",
-        "sec_no": "1150283",
-        "proxy": "EIS",
-        "risk": "רגיל",
-        "theme": "israel",
-        "exposure_type": "ישראל / ת״א 125"
-    },
-    {
-        "enabled": True,
-        "name": "תכלית סל כשרה ת״א 125",
-        "sec_no": "1155373",
-        "proxy": "EIS",
-        "risk": "רגיל",
-        "theme": "israel",
-        "exposure_type": "ישראל / ת״א 125"
-    },
+    {"enabled": True, "name": "MTF סל ת״א 125", "sec_no": "1150283", "proxy": "EIS", "risk": "רגיל", "theme": "israel", "exposure_type": "ישראל / ת״א 125"},
+    {"enabled": True, "name": "תכלית סל כשרה ת״א 125", "sec_no": "1155373", "proxy": "EIS", "risk": "רגיל", "theme": "israel", "exposure_type": "ישראל / ת״א 125"},
 
     # ========================================================
     # טייוואן
-    # אין כרגע מוצר ישראלי ישיר פעיל שאימתנו, לכן לא מכניסים EWT.
-    # אם בעתיד תמצא מספר נייר ישראלי פעיל לטייוואן, מוסיפים כאן:
-    # enabled=True, proxy="EWT", theme="asia".
+    # אין כרגע מוצר ישראלי ישיר פעיל שאומת, לכן EWT לא מוצג.
+    # אם בעתיד נמצא מספר נייר ישראלי פעיל לטייוואן, מוסיפים כאן enabled=True עם proxy="EWT".
     # ========================================================
 ]
 
@@ -265,6 +128,12 @@ NEWS_QUERIES = {
     "recession": "recession OR slowdown OR market crash OR credit risk",
     "banks": "banks OR financial sector OR credit risk OR loan losses",
     "gold": "gold price OR safe haven OR treasury yields OR dollar",
+    "cyber": "cybersecurity OR cyber attack OR ransomware OR hacking OR Palo Alto OR CrowdStrike",
+    "robotics": "robotics OR automation OR industrial automation OR AI robotics",
+    "defense": "defense stocks OR aerospace defense OR military spending OR defense contractors",
+    "nuclear": "nuclear energy OR uranium OR reactors OR nuclear power OR uranium miners",
+    "world": "global equities OR world stocks OR MSCI World OR developed markets",
+    "europe": "Europe stocks OR ECB OR eurozone economy OR European equities",
 }
 
 POS_WORDS = [
@@ -656,7 +525,7 @@ def calc_graph(prices):
 
 
 def build_market_context(price_cache):
-    required = ["SPY", "QQQ", "SOXX", "EEM", "EIS", "GLD", "USO", "UUP", "TLT"]
+    required = ["SPY", "QQQ", "SOXX", "EEM", "EIS", "GLD", "USO", "UUP", "TLT", "HACK", "BOTZ", "ITA", "URA", "URTH", "VGK", "SLV"]
 
     for sym in required:
         if sym not in price_cache:
@@ -673,6 +542,13 @@ def build_market_context(price_cache):
         "uso": perf(price_cache.get("USO"), 21),
         "uup": perf(price_cache.get("UUP"), 21),
         "tlt": perf(price_cache.get("TLT"), 21),
+        "hack": perf(price_cache.get("HACK"), 21),
+        "botz": perf(price_cache.get("BOTZ"), 21),
+        "ita": perf(price_cache.get("ITA"), 21),
+        "ura": perf(price_cache.get("URA"), 21),
+        "urth": perf(price_cache.get("URTH"), 21),
+        "vgk": perf(price_cache.get("VGK"), 21),
+        "slv": perf(price_cache.get("SLV"), 21),
         "news": {
             "oil": news_context("oil"),
             "war": news_context("war"),
@@ -682,6 +558,12 @@ def build_market_context(price_cache):
             "recession": news_context("recession"),
             "banks": news_context("banks"),
             "gold": news_context("gold"),
+            "cyber": news_context("cyber"),
+            "robotics": news_context("robotics"),
+            "defense": news_context("defense"),
+            "nuclear": news_context("nuclear"),
+            "world": news_context("world"),
+            "europe": news_context("europe"),
         },
         "summary": []
     }
@@ -711,12 +593,46 @@ def build_market_context(price_cache):
 def topic_for_theme(theme):
     if theme in ["semis", "tech"]:
         return "ai"
+    if theme == "cyber":
+        return "cyber"
+    if theme == "robotics":
+        return "robotics"
+    if theme == "defense":
+        return "defense"
+    if theme == "nuclear":
+        return "nuclear"
     if theme in ["oil", "energy"]:
         return "oil"
     if theme in ["gold", "silver"]:
         return "gold"
     if theme in ["asia", "china", "emerging"]:
         return "china"
+    if theme == "world":
+        return "world"
+    if theme == "europe":
+        return "europe"
+    if theme == "world":
+        if ctx.get("urth", 0) > 2:
+            adj += 2
+            reasons.append("מניות גלובליות חזקות")
+        if ctx["spy"] > 2 and ctx["qqq"] > 2:
+            adj += 1
+            reasons.append("שוק אמריקאי תומך גם בגלובלי")
+        if ctx["news"]["recession"]["score"] < -1:
+            adj -= 2
+            reasons.append("חשש האטה עולמית")
+
+    if theme == "europe":
+        if ctx.get("vgk", 0) > 2:
+            adj += 2
+            reasons.append("אירופה חזקה בגרף")
+        if ctx["news"]["europe"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית אירופה תומכת")
+        if ctx["news"]["recession"]["score"] < -1:
+            adj -= 2
+            reasons.append("חשש האטה פוגע באירופה")
+
     if theme == "israel":
         return "war"
     if theme == "banks":
@@ -793,6 +709,50 @@ def forward_adjust(fund, ctx, data):
             adj -= 2
             reasons.append("נאסד״ק חלש פוגע בשבבים")
 
+    if theme == "cyber":
+        if ctx.get("hack", 0) > 2:
+            adj += 2
+            reasons.append("סייבר חזק בגרף")
+        if ctx["news"]["cyber"]["score"] > 1:
+            adj += 2
+            reasons.append("אקטואליית סייבר תומכת")
+        if ctx["qqq"] < -2:
+            adj -= 2
+            reasons.append("נאסד״ק חלש פוגע בסקטור סייבר")
+
+    if theme == "robotics":
+        if ctx.get("botz", 0) > 2:
+            adj += 2
+            reasons.append("רובוטיקה/אוטומציה חזקות בגרף")
+        if ctx["news"]["robotics"]["score"] > 1 or ctx["news"]["ai"]["score"] > 1:
+            adj += 2
+            reasons.append("AI/רובוטיקה נתמכים בכותרות")
+        if ctx["qqq"] < -2:
+            adj -= 2
+            reasons.append("חולשה בטכנולוגיה פוגעת ברובוטיקה")
+
+    if theme == "defense":
+        if ctx.get("ita", 0) > 2:
+            adj += 2
+            reasons.append("תעשיות ביטחוניות חזקות בגרף")
+        if ctx["news"]["defense"]["score"] > 1 or ctx["news"]["war"]["score"] < -1:
+            adj += 2
+            reasons.append("ביטחון נתמך בתקציבי הגנה/מתיחות")
+        if ctx["spy"] < -3:
+            adj -= 1
+            reasons.append("חולשת שוק כללית מגבילה גם ביטחון")
+
+    if theme == "nuclear":
+        if ctx.get("ura", 0) > 2:
+            adj += 3
+            reasons.append("גרעין/אורניום חזקים בגרף")
+        if ctx["news"]["nuclear"]["score"] > 1:
+            adj += 2
+            reasons.append("אקטואליית גרעין/אורניום תומכת")
+        if ctx.get("ura", 0) < -3:
+            adj -= 2
+            reasons.append("חולשה באורניום/גרעין")
+
     if theme == "tech":
         if ctx["news"]["ai"]["score"] > 1:
             adj += 2
@@ -852,6 +812,28 @@ def forward_adjust(fund, ctx, data):
         if ctx["eem"] > 2:
             adj += 1
             reasons.append("מתעוררים חיוביים נותנים תמיכה חלקית")
+
+    if theme == "world":
+        if ctx.get("urth", 0) > 2:
+            adj += 2
+            reasons.append("מניות גלובליות חזקות")
+        if ctx["spy"] > 2 and ctx["qqq"] > 2:
+            adj += 1
+            reasons.append("שוק אמריקאי תומך גם בגלובלי")
+        if ctx["news"]["recession"]["score"] < -1:
+            adj -= 2
+            reasons.append("חשש האטה עולמית")
+
+    if theme == "europe":
+        if ctx.get("vgk", 0) > 2:
+            adj += 2
+            reasons.append("אירופה חזקה בגרף")
+        if ctx["news"]["europe"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית אירופה תומכת")
+        if ctx["news"]["recession"]["score"] < -1:
+            adj -= 2
+            reasons.append("חשש האטה פוגע באירופה")
 
     if theme == "israel":
         if ctx["eis"] > 2:
@@ -959,7 +941,7 @@ th{background:#e9eef5}
 <b>מקרא:</b><br>
 🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-הסורק מדרג רק מוצרים עם מספר נייר ישראלי מוגדר. אין הצגה של "בדוק בבנק". הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
+הסורק מדרג מאגר רחב של מוצרים עם מספר נייר ישראלי מוגדר בלבד. אין הצגה של "בדוק בבנק" או מוצר שלא הוגדר כבר־רכישה בישראל. הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
 </div>
 
 <div class="cacheBox">
