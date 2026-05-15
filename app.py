@@ -108,12 +108,65 @@ FUNDS = [
     {"enabled": True, "name": "MTF סל ת״א 125", "sec_no": "1150283", "proxy": "EIS", "risk": "רגיל", "theme": "israel", "exposure_type": "ישראל / ת״א 125"},
     {"enabled": True, "name": "תכלית סל כשרה ת״א 125", "sec_no": "1155373", "proxy": "EIS", "risk": "רגיל", "theme": "israel", "exposure_type": "ישראל / ת״א 125"},
 
+
+    # ========================================================
+    # סקטורים נוספים להרחבת מאגר בלי כפילויות
+    # ========================================================
+    {"enabled": True, "name": "קסם NASDAQ Biotechnology KTF מנוטרלת מט״ח", "sec_no": "5131206", "proxy": "IBB", "risk": "רגיל", "theme": "biotech", "exposure_type": "ביוטכנולוגיה"},
+    {"enabled": True, "name": "מור מחקה S&P Health Care", "sec_no": "5122908", "proxy": "XLV", "risk": "רגיל", "theme": "healthcare", "exposure_type": "בריאות / Health Care"},
+    {"enabled": True, "name": "אי.בי.אי. מחקה S&P Financial מנוטרלת מט״ח", "sec_no": "5121892", "proxy": "XLF", "risk": "רגיל", "theme": "financial", "exposure_type": "פיננסים / Financials"},
+    {"enabled": True, "name": "קסם S&P Financial KTF מנוטרלת מט״ח", "sec_no": "5125174", "proxy": "XLF", "risk": "רגיל", "theme": "financial", "exposure_type": "פיננסים / Financials"},
+    {"enabled": True, "name": "קסם S&P Technology KTF מנוטרלת מט״ח", "sec_no": "5125620", "proxy": "XLK", "risk": "רגיל", "theme": "tech_sector", "exposure_type": "טכנולוגיה סקטוריאלית / XLK"},
+    {"enabled": True, "name": "אי.בי.אי. מחקה S&P Communication Services", "sec_no": "5132360", "proxy": "XLC", "risk": "רגיל", "theme": "communication", "exposure_type": "תקשורת / Communication Services"},
+    {"enabled": True, "name": "תכלית S&P Utilities TTF מנוטרלת מט״ח", "sec_no": "5127287", "proxy": "XLU", "risk": "רגיל", "theme": "utilities", "exposure_type": "תשתיות / Utilities"},
+    {"enabled": True, "name": "אי.בי.אי. מחקה Nasdaq Global Smart Airlines", "sec_no": "5128442", "proxy": "JETS", "risk": "רגיל", "theme": "airlines", "exposure_type": "תעופה / Airlines"},
+
+    # ביטקוין — חשיפה תנודתית מאוד
+    {"enabled": True, "name": "אי.בי.אי. מחקה S&P Bitcoin", "sec_no": "5139910", "proxy": "BTC/USD", "risk": "קריפטו / תנודתי", "theme": "bitcoin", "exposure_type": "ביטקוין"},
+    {"enabled": True, "name": "MTF מחקה Indxx Bitcoin Reference", "sec_no": "5139886", "proxy": "BTC/USD", "risk": "קריפטו / תנודתי", "theme": "bitcoin", "exposure_type": "ביטקוין"},
+
     # ========================================================
     # טייוואן
     # אין כרגע מוצר ישראלי ישיר פעיל שאומת, לכן EWT לא מוצג.
     # אם בעתיד נמצא מספר נייר ישראלי פעיל לטייוואן, מוסיפים כאן enabled=True עם proxy="EWT".
     # ========================================================
 ]
+
+# ============================================================
+# Fallback ל-proxy
+# אם Twelve Data לא מחזיר נתונים לסימבול מסוים,
+# הסורק ינסה סימבולים דומים לפני שהוא מוותר.
+# ============================================================
+
+PROXY_FALLBACKS = {
+    "SOXX": ["SOXX", "SMH"],
+    "HACK": ["HACK", "CIBR", "BUG"],
+    "BOTZ": ["BOTZ", "ROBO", "IRBO"],
+    "ITA": ["ITA", "XAR"],
+    "URA": ["URA", "URNM", "NLR"],
+    "URTH": ["URTH", "ACWI", "VT"],
+    "VGK": ["VGK", "FEZ", "EZU"],
+    "SLV": ["SLV", "SIL"],
+    "EWY": ["EWY", "FLKR"],
+    "INDA": ["INDA", "EPI"],
+    "EEM": ["EEM", "IEMG", "VWO"],
+    "EIS": ["EIS"],
+    "GLD": ["GLD", "IAU"],
+    "SPY": ["SPY", "IVV", "VOO"],
+    "QQQ": ["QQQ", "QQQM"],
+    "UUP": ["UUP"],
+    "TLT": ["TLT", "IEF"],
+    "USO": ["USO", "BNO"],
+    "IBB": ["IBB", "XBI"],
+    "XLV": ["XLV", "IYH"],
+    "XLF": ["XLF", "KBE"],
+    "XLK": ["XLK", "VGT"],
+    "XLC": ["XLC", "VOX"],
+    "XLU": ["XLU", "VPU"],
+    "JETS": ["JETS"],
+    "BTC/USD": ["BTC/USD", "BTCUSD", "BTC"],
+}
+
 
 # ============================================================
 # חדשות
@@ -134,6 +187,14 @@ NEWS_QUERIES = {
     "nuclear": "nuclear energy OR uranium OR reactors OR nuclear power OR uranium miners",
     "world": "global equities OR world stocks OR MSCI World OR developed markets",
     "europe": "Europe stocks OR ECB OR eurozone economy OR European equities",
+    "biotech": "biotechnology stocks OR biotech FDA OR biotech sector OR IBB ETF",
+    "healthcare": "healthcare stocks OR pharma OR health care sector OR XLV ETF",
+    "financial": "financial stocks OR banks OR insurance OR credit risk OR XLF ETF",
+    "tech_sector": "technology stocks OR S&P technology OR software OR XLK ETF",
+    "communication": "communication services stocks OR media stocks OR telecom OR XLC ETF",
+    "utilities": "utilities stocks OR power grid OR electricity demand OR XLU ETF",
+    "airlines": "airline stocks OR travel demand OR jet fuel OR JETS ETF",
+    "bitcoin": "bitcoin price OR crypto market OR spot bitcoin ETF OR BTC",
 }
 
 POS_WORDS = [
@@ -351,6 +412,63 @@ def td_prices(symbol):
         return None
 
 
+def td_prices_with_fallback(proxy):
+    """
+    מחזיר:
+    prices, used_proxy, tried
+    """
+    tried = []
+
+    candidates = PROXY_FALLBACKS.get(proxy, [proxy])
+
+    for sym in candidates:
+        tried.append(sym)
+        prices = td_prices(sym)
+
+        if prices:
+            return prices, sym, tried
+
+        time.sleep(0.05)
+
+    return None, proxy, tried
+
+
+# ============================================================
+# Fallback ל-proxy
+# אם Twelve Data לא מחזיר נתונים לסימבול מסוים,
+# הסורק ינסה סימבולים דומים לפני שהוא מוותר.
+# ============================================================
+
+PROXY_FALLBACKS = {
+    "SOXX": ["SOXX", "SMH"],
+    "HACK": ["HACK", "CIBR", "BUG"],
+    "BOTZ": ["BOTZ", "ROBO", "IRBO"],
+    "ITA": ["ITA", "XAR"],
+    "URA": ["URA", "URNM", "NLR"],
+    "URTH": ["URTH", "ACWI", "VT"],
+    "VGK": ["VGK", "FEZ", "EZU"],
+    "SLV": ["SLV", "SIL"],
+    "EWY": ["EWY", "FLKR"],
+    "INDA": ["INDA", "EPI"],
+    "EEM": ["EEM", "IEMG", "VWO"],
+    "EIS": ["EIS"],
+    "GLD": ["GLD", "IAU"],
+    "SPY": ["SPY", "IVV", "VOO"],
+    "QQQ": ["QQQ", "QQQM"],
+    "UUP": ["UUP"],
+    "TLT": ["TLT", "IEF"],
+    "USO": ["USO", "BNO"],
+    "IBB": ["IBB", "XBI"],
+    "XLV": ["XLV", "IYH"],
+    "XLF": ["XLF", "KBE"],
+    "XLK": ["XLK", "VGT"],
+    "XLC": ["XLC", "VOX"],
+    "XLU": ["XLU", "VPU"],
+    "JETS": ["JETS"],
+    "BTC/USD": ["BTC/USD", "BTCUSD", "BTC"],
+}
+
+
 # ============================================================
 # חדשות
 # ============================================================
@@ -525,12 +643,16 @@ def calc_graph(prices):
 
 
 def build_market_context(price_cache):
-    required = ["SPY", "QQQ", "SOXX", "EEM", "EIS", "GLD", "USO", "UUP", "TLT", "HACK", "BOTZ", "ITA", "URA", "URTH", "VGK", "SLV"]
+    required = ["SPY", "QQQ", "SOXX", "EEM", "EIS", "GLD", "USO", "UUP", "TLT", "HACK", "BOTZ", "ITA", "URA", "URTH", "VGK", "SLV", "IBB", "XLV", "XLF", "XLK", "XLC", "XLU", "JETS", "BTC/USD"]
 
     for sym in required:
         if sym not in price_cache:
-            price_cache[sym] = td_prices(sym)
-            time.sleep(0.15)
+            prices, used_proxy, tried = td_prices_with_fallback(sym)
+            price_cache[sym] = prices
+            # שמירה גם בשם ה-proxy החלופי כדי שלא נבקש שוב
+            if used_proxy and used_proxy != sym:
+                price_cache[used_proxy] = prices
+            time.sleep(0.05)
 
     ctx = {
         "spy": perf(price_cache.get("SPY"), 21),
@@ -549,6 +671,14 @@ def build_market_context(price_cache):
         "urth": perf(price_cache.get("URTH"), 21),
         "vgk": perf(price_cache.get("VGK"), 21),
         "slv": perf(price_cache.get("SLV"), 21),
+        "ibb": perf(price_cache.get("IBB"), 21),
+        "xlv": perf(price_cache.get("XLV"), 21),
+        "xlf": perf(price_cache.get("XLF"), 21),
+        "xlk": perf(price_cache.get("XLK"), 21),
+        "xlc": perf(price_cache.get("XLC"), 21),
+        "xlu": perf(price_cache.get("XLU"), 21),
+        "jets": perf(price_cache.get("JETS"), 21),
+        "btc": perf(price_cache.get("BTC/USD"), 21),
         "news": {
             "oil": news_context("oil"),
             "war": news_context("war"),
@@ -564,6 +694,14 @@ def build_market_context(price_cache):
             "nuclear": news_context("nuclear"),
             "world": news_context("world"),
             "europe": news_context("europe"),
+            "biotech": news_context("biotech"),
+            "healthcare": news_context("healthcare"),
+            "financial": news_context("financial"),
+            "tech_sector": news_context("tech_sector"),
+            "communication": news_context("communication"),
+            "utilities": news_context("utilities"),
+            "airlines": news_context("airlines"),
+            "bitcoin": news_context("bitcoin"),
         },
         "summary": []
     }
@@ -862,6 +1000,96 @@ def forward_adjust(fund, ctx, data):
             adj -= 1
             reasons.append("Risk-on מפחית עדיפות לדולר")
 
+    if theme == "biotech":
+        if ctx.get("ibb", 0) > 2:
+            adj += 2
+            reasons.append("ביוטק חזק בגרף")
+        if ctx["news"]["biotech"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית ביוטק תומכת")
+        if ctx["spy"] < -2:
+            adj -= 2
+            reasons.append("שוק חלש פוגע בסקטור תנודתי כמו ביוטק")
+
+    if theme == "healthcare":
+        if ctx.get("xlv", 0) > 2:
+            adj += 2
+            reasons.append("בריאות חזקה בגרף")
+        if ctx["news"]["healthcare"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית בריאות/פארמה תומכת")
+        if ctx["spy"] < -2:
+            adj -= 1
+            reasons.append("חולשת שוק כללית מגבילה גם בריאות")
+
+    if theme == "financial":
+        if ctx.get("xlf", 0) > 2:
+            adj += 2
+            reasons.append("פיננסים חזקים בגרף")
+        if ctx["news"]["financial"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית פיננסים תומכת")
+        if ctx["news"]["recession"]["score"] < -1:
+            adj -= 2
+            reasons.append("חשש האטה/אשראי פוגע בפיננסים")
+
+    if theme == "tech_sector":
+        if ctx.get("xlk", 0) > 2:
+            adj += 2
+            reasons.append("טכנולוגיה סקטוריאלית חזקה")
+        if ctx["news"]["tech_sector"]["score"] > 1 or ctx["news"]["ai"]["score"] > 1:
+            adj += 2
+            reasons.append("טכנולוגיה/AI נתמכים באקטואליה")
+        if ctx["news"]["rates"]["score"] < -1:
+            adj -= 2
+            reasons.append("ריבית לוחצת על טכנולוגיה")
+
+    if theme == "communication":
+        if ctx.get("xlc", 0) > 2:
+            adj += 2
+            reasons.append("תקשורת/מדיה חזקים בגרף")
+        if ctx["news"]["communication"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית תקשורת/מדיה תומכת")
+        if ctx["spy"] < -2:
+            adj -= 1
+            reasons.append("חולשת שוק כללית מגבילה")
+
+    if theme == "utilities":
+        if ctx.get("xlu", 0) > 2:
+            adj += 2
+            reasons.append("Utilities חזקים בגרף")
+        if ctx["news"]["utilities"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית חשמל/תשתיות תומכת")
+        if ctx["spy"] > 2 and ctx["qqq"] > 2:
+            adj -= 1
+            reasons.append("שוק Risk-on מפחית עדיפות לסקטור הגנתי")
+
+    if theme == "airlines":
+        if ctx.get("jets", 0) > 2:
+            adj += 2
+            reasons.append("תעופה חזקה בגרף")
+        if ctx["news"]["airlines"]["score"] > 1:
+            adj += 1.5
+            reasons.append("אקטואליית תעופה/ביקוש תומכת")
+        if ctx["uso"] > 3:
+            adj -= 2
+            reasons.append("עליית נפט/דלק סילוני עלולה לפגוע בתעופה")
+
+    if theme == "bitcoin":
+        if ctx.get("btc", 0) > 5:
+            adj += 3
+            reasons.append("ביטקוין במומנטום חזק")
+        elif ctx.get("btc", 0) < -5:
+            adj -= 3
+            reasons.append("ביטקוין במומנטום שלילי")
+        if ctx["news"]["bitcoin"]["score"] > 1:
+            adj += 2
+            reasons.append("אקטואליית ביטקוין תומכת")
+        adj -= 2
+        reasons.append("קריפטו תנודתי מאוד — קנס סיכון")
+
     # קנס מינוף
     if "פי 3" in risk:
         adj -= 3
@@ -941,7 +1169,7 @@ th{background:#e9eef5}
 <b>מקרא:</b><br>
 🔥 מעל 8 = חזק מאוד | 🟢 4–8 = קנייה | 🟡 1–4 = מעקב | 🔴 מתחת 1 = להימנע<br>
 <b>מה הציון כולל:</b><br>
-הסורק מדרג מאגר רחב של מוצרים עם מספר נייר ישראלי מוגדר בלבד. אין הצגה של "בדוק בבנק". ה-TOP 10 מגוון: מוצר אחד בלבד לכל בסיס ניתוח, כדי שלא יהיו כפילויות כמו QQQ/EEM כמה פעמים. הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
+הסורק מדרג מאגר רחב של מוצרים עם מספר נייר ישראלי מוגדר בלבד. אין הצגה של "בדוק בבנק". ה-TOP 10 מגוון: מוצר אחד בלבד לכל בסיס ניתוח, כדי שלא יהיו כפילויות כמו QQQ/EEM כמה פעמים. אם Twelve Data לא מחזיר נתונים ל-proxy מסוים, הסורק מנסה proxy חלופי קרוב. אין השלמה בכפילויות — אם חסר, צריך להרחיב מאגר קטגוריות. הציון כולל גרף + מאקרו + אקטואליה מ־GDELT ו־Google News RSS + הסתכלות קדימה + קנס סיכון.
 </div>
 
 <div class="cacheBox">
@@ -984,13 +1212,20 @@ function render(data){
             <b>נשמר בתאריך:</b> ${data.saved_at || "-"}<br>
             <b>איפוס יומי הבא:</b> ${data.next_daily_reset || "-"}<br>
             <b>מספר מוצרים שהוצגו:</b> ${(data.results || []).length}<br>
-            <b>כפילויות שדולגו:</b> ${(data.skipped_duplicates || []).length}
+            <b>כפילויות שדולגו:</b> ${(data.skipped_duplicates || []).length}<br>
+            <b>מוצרים שנכשלו בנתוני מחיר:</b> ${(data.errors || []).length}
         </div>`;
 
-    document.getElementById("market").innerHTML =
-        `<div class="legend"><b>מצב שוק:</b><br>${(data.market || []).join("<br>")}</div>`;
+    let errorsHtml = "";
+    if ((data.errors || []).length > 0) {
+        errorsHtml = `<br><br><b>מוצרים שלא נכנסו בגלל חוסר נתוני מחיר:</b><br>` +
+            (data.errors || []).slice(0, 12).map(e => "• " + e).join("<br>");
+    }
 
-    let html="<tr><th>#</th><th>שם מוצר / קרן</th><th>מס׳ נייר בישראל</th><th>בסיס ניתוח</th><th>חשיפה</th><th>סוג / סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>אקטואליה — למה?</th></tr>";
+    document.getElementById("market").innerHTML =
+        `<div class="legend"><b>מצב שוק:</b><br>${(data.market || []).join("<br>")}${errorsHtml}</div>`;
+
+    let html="<tr><th>#</th><th>שם מוצר / קרן</th><th>מס׳ נייר בישראל</th><th>בסיס ניתוח</th><th>Proxy בפועל</th><th>חשיפה</th><th>סוג / סיכון</th><th>חודש</th><th>3ח׳</th><th>חצי שנה</th><th>גרף</th><th>אקטואלי</th><th>סופי</th><th>המלצה</th><th>אקטואליה — למה?</th></tr>";
 
     (data.results || []).forEach((x,i)=>{
         let cls="bad";
@@ -1002,6 +1237,7 @@ function render(data){
             <td>${x.name}</td>
             <td>${x.sec_no}</td>
             <td>${x.proxy}</td>
+            <td>${x.analysis_proxy || x.proxy}</td>
             <td>${x.exposure_type || ""}</td>
             <td>${x.risk}</td>
             <td>${x.month}%</td>
@@ -1065,13 +1301,18 @@ def run_full_scan():
             proxy = fund["proxy"]
 
             if proxy not in price_cache:
-                price_cache[proxy] = td_prices(proxy)
-                time.sleep(0.15)
+                prices, used_proxy, tried = td_prices_with_fallback(proxy)
+                price_cache[proxy] = prices
 
-            prices = price_cache.get(proxy)
+                if used_proxy and used_proxy != proxy:
+                    price_cache[used_proxy] = prices
+            else:
+                prices = price_cache.get(proxy)
+                used_proxy = proxy
+                tried = [proxy]
 
             if not prices:
-                errors.append(f"{fund['name']} - אין נתוני מחיר עבור proxy {proxy}")
+                errors.append(f"{fund['name']} - אין נתוני מחיר עבור proxy {proxy}. נוסו: {', '.join(tried)}")
                 continue
 
             data = calc_graph(prices)
@@ -1082,6 +1323,7 @@ def run_full_scan():
                 "name": fund["name"],
                 "sec_no": fund["sec_no"],
                 "proxy": proxy,
+                "analysis_proxy": used_proxy,
                 "risk": fund["risk"],
                 "theme": fund["theme"],
                 "exposure_type": fund.get("exposure_type", ""),
